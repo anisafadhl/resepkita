@@ -53,11 +53,7 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
             <h2 className="text-xl sm:text-2xl font-black text-stone-900">Rekomendasi Spesial Untukmu</h2>
           </div>
           <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            {highestCount > 1 && topTopic !== 'semua' ? (
-              <span>✨ Menyesuaikan seleramu: kamu sering mencari topik <b className="text-brand-600 uppercase">{topTopic}</b></span>
-            ) : (
-              'Berdasarkan masakan terpopuler & sering dicari oleh komunitas'
-            )}
+            Berdasarkan masakan terpopuler & sering dicari oleh komunitas
           </p>
         </div>
         <button 

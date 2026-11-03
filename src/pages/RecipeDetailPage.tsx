@@ -179,12 +179,9 @@ export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
           {/* CTA Banner: Guided Cooking Mode */}
           <div className="bg-gradient-to-r from-brand-500 via-brand-600 to-amber-500 rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl shadow-brand-500/20">
             <div>
-              <div className="flex items-center gap-2 text-brand-100 text-xs font-black uppercase tracking-wider mb-1">
-                <Sparkles className="w-4 h-4" /> Mode Dapur Fokus
-              </div>
               <h3 className="text-xl sm:text-2xl font-black">Siap Mulai Memasak Sekarang?</h3>
               <p className="text-brand-50 text-xs sm:text-sm mt-1 max-w-md">
-                Gunakan panduan langkah besar demi langkah dengan layar penuh & timer dapur terintegrasi.
+                Gunakan panduan langkah demi langkah dengan layar penuh & timer dapur terintegrasi.
               </p>
             </div>
             <button 

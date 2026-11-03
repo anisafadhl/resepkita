@@ -97,9 +97,6 @@ export const CookingModePage: React.FC<CookingModePageProps> = ({
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-xs uppercase tracking-wider font-extrabold text-brand-100 block">
-                Mode Memasak Fokus Layar Penuh
-              </span>
               <h2 className="text-2xl sm:text-3xl font-black">{recipe.title}</h2>
             </div>
           </div>

@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
               <div className="text-left">
                 <span className="block text-xs font-bold text-stone-800 leading-tight max-w-[120px] truncate">{currentUser.name}</span>
-                <span className="block text-[10px] text-stone-500">Koki Terdaftar</span>
+                <span className="block text-[10px] text-stone-500">Pengguna Terdaftar</span>
               </div>
             </button>
           ) : (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChefHat } from 'lucide-react';
+import { ArrowLeft, ChefHat, Upload, Image as ImageIcon, X } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 import { Recipe } from '../types/recipe';
 
@@ -17,13 +17,41 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
   const [desc, setDesc] = useState('');
   const [ingredientsInput, setIngredientsInput] = useState('');
   const [stepsInput, setStepsInput] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageBase64, setImageBase64] = useState('');
+  const [imageFileName, setImageFileName] = useState('');
   const [tips, setTips] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Harap pilih file gambar (JPG, PNG, WebP)', true);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Ukuran foto maksimal 5 MB', true);
+      return;
+    }
+
+    setImageFileName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageBase64('');
+    setImageFileName('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +87,8 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
       tags: parsedTags,
       time: duration,
       difficulty: duration > 30 ? 'Sedang' : 'Mudah',
-      author: currentUser ? currentUser.name : 'Koki Resep Kita',
-      image: imageUrl.trim() || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=700&auto=format&fit=crop&q=80',
+      author: currentUser ? currentUser.name : 'Pengguna Resep Kita',
+      image: imageBase64 || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=700&auto=format&fit=crop&q=80',
       desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
       portionBase: 2,
       ingredients: parsedIngredients,
@@ -86,7 +114,7 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
         </button>
 
         <span className="text-sm font-bold text-stone-500">
-          Koki Terdaftar: <b className="text-stone-900">{currentUser?.name || 'Tamu'}</b>
+          Penulis: <b className="text-stone-900">{currentUser?.name || 'Tamu'}</b>
         </span>
       </div>
 
@@ -108,8 +136,8 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Baris 1: Judul Resep & Foto */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Baris 1: Judul Resep & Upload Foto Masakan */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div>
               <label className="block text-sm font-black text-stone-800 mb-2">
                 Judul Resep Masakan *
@@ -122,52 +150,87 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
                 placeholder="Contoh: Sayur Asem Segar Jakarta / Kue Cubit Lumer" 
                 className="w-full text-base border border-stone-300 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
               />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div>
+                  <label className="block text-sm font-black text-stone-800 mb-2">
+                    Kategori / Tag Pencarian
+                  </label>
+                  <input 
+                    type="text" 
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="Contoh: manis, dessert, kue" 
+                    className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-black text-stone-800 mb-2">
+                    Durasi Masak (Menit) *
+                  </label>
+                  <input 
+                    type="number" 
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    required 
+                    min="5" 
+                    placeholder="25" 
+                    className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Upload Foto Komponen */}
             <div>
               <label className="block text-sm font-black text-stone-800 mb-2">
-                URL Foto Masakan (Opsional)
+                Upload Foto Masakan
               </label>
-              <input 
-                type="url" 
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/photo-..." 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
-              />
+              
+              {imageBase64 ? (
+                <div className="relative rounded-2xl overflow-hidden border border-stone-200 h-52 bg-stone-100 group">
+                  <img 
+                    src={imageBase64} 
+                    alt="Preview Masakan" 
+                    className="w-full h-full object-cover" 
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Hapus Foto</span>
+                    </button>
+                  </div>
+                  <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-xs truncate">
+                    {imageFileName}
+                  </div>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-brand-500 rounded-2xl h-52 bg-stone-50 hover:bg-brand-50/20 cursor-pointer transition-all p-6 text-center group">
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-stone-400 group-hover:text-brand-500 mb-3 border border-stone-200 transition-colors">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <span className="text-sm font-bold text-stone-800 group-hover:text-brand-600">
+                    Pilih atau tarik foto masakan ke sini
+                  </span>
+                  <span className="text-xs text-stone-400 mt-1">
+                    Mendukung JPG, PNG, atau WebP (Maks. 5 MB)
+                  </span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageFileChange}
+                    className="hidden" 
+                  />
+                </label>
+              )}
             </div>
           </div>
 
-          {/* Baris 2: Tag & Durasi Memasak */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-black text-stone-800 mb-2">
-                Kategori / Tag Pencarian (Pisahkan koma/spasi)
-              </label>
-              <input 
-                type="text" 
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="Contoh: manis, dessert, kue, praktis" 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-black text-stone-800 mb-2">
-                Estimasi Durasi Masak (Menit) *
-              </label>
-              <input 
-                type="number" 
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                required 
-                min="5" 
-                placeholder="25" 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-5 py-3.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Baris 3: Cerita Singkat Resep */}
+          {/* Baris 2: Cerita Singkat Resep */}
           <div>
             <label className="block text-sm font-black text-stone-800 mb-2">
               Cerita Singkat Resep
@@ -181,7 +244,7 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
             />
           </div>
 
-          {/* Baris 4: Bahan-bahan & Langkah-langkah (Desktop: 2 Kolom Lebar) */}
+          {/* Baris 3: Bahan-bahan & Langkah-langkah (Desktop: 2 Kolom Lebar) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
               <label className="block text-sm font-black text-stone-800 mb-2">
@@ -211,10 +274,10 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
             </div>
           </div>
 
-          {/* Baris 5: Tips Rahasia */}
+          {/* Baris 4: Tips Rahasia */}
           <div>
             <label className="block text-sm font-black text-stone-800 mb-2">
-              Tips Rahasia Sukses dari Koki (Opsional)
+              Tips Rahasia Sukses dari Dapur (Opsional)
             </label>
             <input 
               type="text" 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ChefHat, UserPlus, LogIn } from 'lucide-react';
+import { X, User, UserPlus, LogIn } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 
 interface LoginModalProps {
@@ -38,9 +38,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
     });
 
     if (isRegisterMode) {
-      showToast(`Pendaftaran berhasil! Selamat bergabung sebagai Koki, ${name.trim()} 🎉`);
+      showToast(`Pendaftaran akun baru berhasil! Selamat datang, ${name.trim()} 🎉`);
     } else {
-      showToast(`Selamat datang kembali, ${name.trim()}! Siap berkreasi di dapur.`);
+      showToast(`Selamat datang kembali, ${name.trim()}!`);
     }
 
     setName('');
@@ -68,7 +68,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
           <X className="w-6 h-6" />
         </button>
 
-        {/* Tab Pilihan Masuk / Daftar */}
+        {/* Tab Pilihan Masuk / Buat Akun Baru */}
         <div className="flex bg-stone-100 p-1 rounded-2xl mb-6">
           <button
             type="button"
@@ -92,35 +92,35 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Daftar Koki Baru</span>
+            <span>Buat Akun Baru</span>
           </button>
         </div>
 
         <div className="text-center mb-6">
           <div className="w-14 h-14 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <ChefHat className="w-8 h-8" />
+            <User className="w-8 h-8" />
           </div>
           <h3 className="text-xl font-black text-stone-900">
-            {isRegisterMode ? 'Buat Akun Koki Baru' : 'Masuk ke Resep Kita'}
+            {isRegisterMode ? 'Buat Akun Baru' : 'Masuk Akun'}
           </h3>
           <p className="text-xs sm:text-sm text-stone-500 mt-1">
             {isRegisterMode 
-              ? 'Daftarkan profilmu untuk menyimpan portofolio masakan & berbagi inspirasi resep keluarga.'
-              : 'Mencari resep tetap gratis tanpa login. Masuk untuk mengelola & menerbitkan resepmu.'}
+              ? 'Daftarkan akunmu untuk menyimpan resep favorit dan membagikan resep masakanmu.'
+              : 'Membaca resep bebas tanpa login. Masuk akun untuk membagikan resep karyamu.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-stone-700 mb-1.5">
-              {isRegisterMode ? 'Nama Lengkap / Nama Panggilan Koki *' : 'Nama Kamu / Nama Koki *'}
+              Nama Lengkap / Nama Pengguna *
             </label>
             <input 
               type="text" 
               value={name}
               onChange={(e) => setName(e.target.value)}
               required 
-              placeholder={isRegisterMode ? "Contoh: Bunda Anisa / Chef Budi" : "Nama akun kokimu"} 
+              placeholder="Contoh: Anisa Fadhl / Budi Santoso" 
               className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
             />
           </div>
@@ -134,7 +134,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required={isRegisterMode}
-              placeholder="koki@email.com" 
+              placeholder="nama@email.com" 
               className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
             />
           </div>
@@ -160,7 +160,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
               type="submit" 
               className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white rounded-2xl font-bold text-sm shadow-md shadow-brand-500/30 transition-all cursor-pointer"
             >
-              {isRegisterMode ? 'Daftar Sekarang & Lanjut' : 'Masuk & Lanjut Menulis'}
+              {isRegisterMode ? 'Buat Akun Baru' : 'Masuk'}
             </button>
           </div>
 
@@ -172,7 +172,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             >
               {isRegisterMode 
                 ? 'Sudah punya akun? Masuk di sini' 
-                : 'Belum punya akun? Daftar sebagai koki baru'}
+                : 'Belum punya akun? Buat akun baru'}
             </button>
           </div>
         </form>

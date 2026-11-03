@@ -21,7 +21,7 @@ export const UserBanner: React.FC<UserBannerProps> = ({ onShowMyRecipes }) => {
           {currentUser.name.charAt(0).toUpperCase()}
         </div>
         <div>
-          <div className="text-xs text-stone-500">Halo Koki Hebat!</div>
+          <div className="text-xs text-stone-500">Halo!</div>
           <div className="font-bold text-stone-900 text-sm">{currentUser.name}</div>
         </div>
       </div>
