@@ -61,6 +61,14 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Load local state & Supabase data
   useEffect(() => {
     try {
+      // Clear old dummy cache from localStorage
+      const legacyCleared = localStorage.getItem('resepkita_v3_clean');
+      if (!legacyCleared) {
+        localStorage.removeItem('resepkita_v2_recipes');
+        localStorage.removeItem('resepkita_v2_bookmarks');
+        localStorage.setItem('resepkita_v3_clean', 'true');
+      }
+
       const savedBm = localStorage.getItem('resepkita_v2_bookmarks');
       if (savedBm) setBookmarks(JSON.parse(savedBm));
 
@@ -92,7 +100,8 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (error) {
           console.warn('Supabase fetch failed, falling back to local storage:', error.message);
           loadLocalRecipes();
-        } else if (data && data.length > 0) {
+        } else if (data) {
+          // Sync directly with Supabase table (if empty array, it means 0 recipes)
           const mapped: Recipe[] = (data as SupabaseRecipeRow[]).map(item => ({
             id: String(item.id),
             title: item.title,
@@ -112,8 +121,7 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             created_at: item.created_at,
           }));
           setRecipes(mapped);
-        } else {
-          loadLocalRecipes();
+          localStorage.setItem('resepkita_v2_recipes', JSON.stringify(mapped));
         }
       } catch (err) {
         console.error('Error connecting to Supabase:', err);
