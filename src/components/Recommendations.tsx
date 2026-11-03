@@ -42,6 +42,8 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
 
   const topItems = recommendedList.slice(0, 4);
 
+  if (topItems.length === 0) return null;
+
   return (
     <section className="mb-10">
       <div className="flex items-center justify-between mb-4">

@@ -135,8 +135,8 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.error(e);
       }
     }
-    setRecipes(defaultRecipes);
-    localStorage.setItem('resepkita_v2_recipes', JSON.stringify(defaultRecipes));
+    setRecipes([]);
+    localStorage.setItem('resepkita_v2_recipes', JSON.stringify([]));
   };
 
   const toggleBookmark = (id: string) => {
