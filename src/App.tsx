@@ -181,7 +181,8 @@ export const App: React.FC = () => {
               </button>
 
               {[
-                { tag: 'dessert', label: '🍰 Dessert & Manis' },
+                { tag: 'manis', label: '🍰 Aneka Manis & Dessert' },
+                { tag: 'gurih', label: '🍲 Aneka Gurih & Lauk' },
                 { tag: 'ayam', label: '🍗 Aneka Ayam' },
                 { tag: 'sayur', label: '🥗 Sayur & Sup Sehat' },
                 { tag: 'pedas', label: '🌶️ Sambal & Pedas' },
