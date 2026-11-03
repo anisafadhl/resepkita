@@ -1,25 +1,38 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChefHat, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, ChefHat, Upload, X } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 import { Recipe } from '../types/recipe';
 
-interface CreateRecipePageProps {
+interface RecipeFormPageProps {
+  initialRecipe?: Recipe | null;
   onBack: () => void;
   onSuccess: () => void;
 }
 
-export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSuccess }) => {
-  const { createRecipe, currentUser, showToast } = useRecipes();
+export const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
+  initialRecipe,
+  onBack,
+  onSuccess,
+}) => {
+  const { createRecipe, updateRecipe, currentUser, showToast } = useRecipes();
+  const isEditing = Boolean(initialRecipe);
 
-  const [title, setTitle] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
-  const [time, setTime] = useState('20');
-  const [desc, setDesc] = useState('');
-  const [ingredientsInput, setIngredientsInput] = useState('');
-  const [stepsInput, setStepsInput] = useState('');
-  const [imageBase64, setImageBase64] = useState('');
+  const [title, setTitle] = useState(initialRecipe?.title || '');
+  const [tagsInput, setTagsInput] = useState(initialRecipe?.tags ? initialRecipe.tags.join(', ') : '');
+  const [time, setTime] = useState(String(initialRecipe?.time || 20));
+  const [desc, setDesc] = useState(initialRecipe?.desc || '');
+  
+  const initialIngredients = initialRecipe?.ingredients
+    ? initialRecipe.ingredients.map(ing => `${ing.qty > 0 ? ing.qty + ' ' : ''}${ing.unit} ${ing.name}`.trim()).join('\n')
+    : '';
+  const [ingredientsInput, setIngredientsInput] = useState(initialIngredients);
+  
+  const initialSteps = initialRecipe?.steps ? initialRecipe.steps.join('\n') : '';
+  const [stepsInput, setStepsInput] = useState(initialSteps);
+  
+  const [imageBase64, setImageBase64] = useState(initialRecipe?.image || '');
   const [imageFileName, setImageFileName] = useState('');
-  const [tips, setTips] = useState('');
+  const [tips, setTips] = useState(initialRecipe?.tips || '');
   const [submitting, setSubmitting] = useState(false);
 
   React.useEffect(() => {
@@ -82,21 +95,35 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
 
     const duration = parseInt(time) || 20;
 
-    const newRecipePayload: Omit<Recipe, 'id' | 'rating' | 'reviewsCount'> = {
-      title: title.trim(),
-      tags: parsedTags,
-      time: duration,
-      difficulty: duration > 30 ? 'Sedang' : 'Mudah',
-      author: currentUser ? currentUser.name : 'Pengguna Resep Kita',
-      image: imageBase64 || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=700&auto=format&fit=crop&q=80',
-      desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
-      portionBase: 2,
-      ingredients: parsedIngredients,
-      steps: parsedSteps,
-      tips: tips.trim() || 'Masak dengan hati senang agar rasa makanan semakin lezat!',
-    };
+    if (isEditing && initialRecipe) {
+      await updateRecipe(initialRecipe.id, {
+        title: title.trim(),
+        tags: parsedTags,
+        time: duration,
+        difficulty: duration > 30 ? 'Sedang' : 'Mudah',
+        image: imageBase64 || initialRecipe.image,
+        desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
+        ingredients: parsedIngredients,
+        steps: parsedSteps,
+        tips: tips.trim() || 'Masak dengan hati senang agar rasa makanan semakin lezat!',
+      });
+    } else {
+      const newRecipePayload: Omit<Recipe, 'id' | 'rating' | 'reviewsCount'> = {
+        title: title.trim(),
+        tags: parsedTags,
+        time: duration,
+        difficulty: duration > 30 ? 'Sedang' : 'Mudah',
+        author: currentUser ? currentUser.name : 'Pengguna Resep Kita',
+        image: imageBase64 || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=700&auto=format&fit=crop&q=80',
+        desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
+        portionBase: 2,
+        ingredients: parsedIngredients,
+        steps: parsedSteps,
+        tips: tips.trim() || 'Masak dengan hati senang agar rasa makanan semakin lezat!',
+      };
+      await createRecipe(newRecipePayload);
+    }
 
-    await createRecipe(newRecipePayload);
     setSubmitting(false);
     onSuccess();
   };
@@ -110,11 +137,11 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 text-sm font-bold shadow-sm transition-all cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 text-brand-600" />
-          <span>Kembali ke Jelajah</span>
+          <span>Kembali</span>
         </button>
 
         <span className="text-sm font-bold text-stone-500">
-          Penulis: <b className="text-stone-900">{currentUser?.name || 'Tamu'}</b>
+          Penulis: <b className="text-stone-900">{currentUser?.name || initialRecipe?.author || 'Tamu'}</b>
         </span>
       </div>
 
@@ -126,10 +153,12 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-stone-900">
-                Tulis & Terbitkan Resep Baru
+                {isEditing ? 'Perbarui Resep Masakan' : 'Tulis & Terbitkan Resep Baru'}
               </h1>
               <p className="text-sm text-stone-500 mt-1">
-                Karyamu akan langsung tersimpan ke Supabase Cloud dan dinikmati ribuan pengunjung.
+                {isEditing 
+                  ? 'Ubah informasi bahan atau langkah memasak agar resepmu semakin sempurna.'
+                  : 'Karyamu akan langsung tersimpan ke Supabase Cloud dan dinikmati ribuan pengunjung.'}
               </p>
             </div>
           </div>
@@ -201,12 +230,14 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
                       className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
                     >
                       <X className="w-4 h-4" />
-                      <span>Hapus Foto</span>
+                      <span>Ganti / Hapus Foto</span>
                     </button>
                   </div>
-                  <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-xs truncate">
-                    {imageFileName}
-                  </div>
+                  {imageFileName && (
+                    <div className="absolute bottom-2 left-2 right-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-white text-xs truncate">
+                      {imageFileName}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-stone-300 hover:border-brand-500 rounded-2xl h-52 bg-stone-50 hover:bg-brand-50/20 cursor-pointer transition-all p-6 text-center group">
@@ -244,7 +275,7 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
             />
           </div>
 
-          {/* Baris 3: Bahan-bahan & Langkah-langkah (Desktop: 2 Kolom Lebar) */}
+          {/* Baris 3: Bahan-bahan & Langkah-langkah */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div>
               <label className="block text-sm font-black text-stone-800 mb-2">
@@ -302,7 +333,7 @@ export const CreateRecipePage: React.FC<CreateRecipePageProps> = ({ onBack, onSu
               disabled={submitting}
               className="px-10 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 active:scale-95 text-white text-sm font-black shadow-lg shadow-brand-500/25 transition-all cursor-pointer disabled:opacity-50"
             >
-              {submitting ? 'Menerbitkan...' : 'Simpan & Terbitkan Resep'}
+              {submitting ? 'Menyimpan...' : (isEditing ? 'Simpan Perubahan' : 'Simpan & Terbitkan Resep')}
             </button>
           </div>
         </form>

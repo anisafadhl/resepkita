@@ -30,7 +30,8 @@ interface RecipeContextType {
   isOnlineDatabase: boolean;
   toggleBookmark: (id: string) => void;
   createRecipe: (recipeData: Omit<Recipe, 'id' | 'rating' | 'reviewsCount'>) => Promise<boolean>;
-  deleteRecipe?: (id: string) => Promise<boolean>;
+  updateRecipe: (id: string, updatedData: Partial<Recipe>) => Promise<boolean>;
+  deleteRecipe: (id: string) => Promise<boolean>;
   setCurrentUser: (user: UserProfile | null) => void;
   logout: () => void;
   toast: { message: string; type: 'success' | 'error' } | null;
@@ -59,7 +60,6 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Load local state & Supabase data
   useEffect(() => {
-    // Load local storage items
     try {
       const savedBm = localStorage.getItem('resepkita_v2_bookmarks');
       if (savedBm) setBookmarks(JSON.parse(savedBm));
@@ -113,7 +113,6 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }));
           setRecipes(mapped);
         } else {
-          // If Supabase table is empty, seed or use default recipes
           loadLocalRecipes();
         }
       } catch (err) {
@@ -176,6 +175,7 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     showToast('Preferensi pencarian telah di-reset ke setelan awal.');
   };
 
+  // CREATE
   const createRecipe = async (newRecipeData: Omit<Recipe, 'id' | 'rating' | 'reviewsCount'>): Promise<boolean> => {
     if (isSupabaseConfigured && supabase) {
       try {
@@ -242,6 +242,81 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return true;
   };
 
+  // UPDATE
+  const updateRecipe = async (id: string, updatedData: Partial<Recipe>): Promise<boolean> => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload: Record<string, any> = {};
+        if (updatedData.title !== undefined) payload.title = updatedData.title;
+        if (updatedData.tags !== undefined) payload.tags = updatedData.tags;
+        if (updatedData.time !== undefined) payload.time = updatedData.time;
+        if (updatedData.difficulty !== undefined) payload.difficulty = updatedData.difficulty;
+        if (updatedData.image !== undefined) payload.image = updatedData.image;
+        if (updatedData.desc !== undefined) payload.description = updatedData.desc;
+        if (updatedData.portionBase !== undefined) payload.portion_base = updatedData.portionBase;
+        if (updatedData.ingredients !== undefined) payload.ingredients = updatedData.ingredients;
+        if (updatedData.steps !== undefined) payload.steps = updatedData.steps;
+        if (updatedData.tips !== undefined) payload.tips = updatedData.tips;
+
+        const { error } = await supabase.from('recipes').update(payload).eq('id', id);
+
+        if (error) {
+          console.error('Supabase update error:', error);
+          showToast('Gagal memperbarui resep di Supabase', true);
+        } else {
+          setRecipes(prev => prev.map(r => r.id === id ? { ...r, ...updatedData } : r));
+          showToast('Resep berhasil diperbarui! ✨');
+          return true;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Local update
+    setRecipes(prev => {
+      const updated = prev.map(r => r.id === id ? { ...r, ...updatedData } : r);
+      localStorage.setItem('resepkita_v2_recipes', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Resep berhasil diperbarui! ✨');
+    return true;
+  };
+
+  // DELETE
+  const deleteRecipe = async (id: string): Promise<boolean> => {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('recipes').delete().eq('id', id);
+        if (error) {
+          console.error('Supabase delete error:', error);
+          showToast('Gagal menghapus resep di Supabase', true);
+        } else {
+          setRecipes(prev => prev.filter(r => r.id !== id));
+          setBookmarks(prev => prev.filter(b => b !== id));
+          showToast('Resep berhasil dihapus.');
+          return true;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Local delete
+    setRecipes(prev => {
+      const updated = prev.filter(r => r.id !== id);
+      localStorage.setItem('resepkita_v2_recipes', JSON.stringify(updated));
+      return updated;
+    });
+    setBookmarks(prev => {
+      const updatedBm = prev.filter(b => b !== id);
+      localStorage.setItem('resepkita_v2_bookmarks', JSON.stringify(updatedBm));
+      return updatedBm;
+    });
+    showToast('Resep berhasil dihapus.');
+    return true;
+  };
+
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('resepkita_current_user');
@@ -267,6 +342,8 @@ export const RecipeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isOnlineDatabase: isSupabaseConfigured,
         toggleBookmark,
         createRecipe,
+        updateRecipe,
+        deleteRecipe,
         setCurrentUser: handleSetCurrentUser,
         logout,
         toast,

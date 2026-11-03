@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Bookmark, Sparkles, Clock, Smile, Star, Minus, Plus, Lightbulb, ChefHat } from 'lucide-react';
+import { ArrowLeft, Bookmark, Sparkles, Clock, Smile, Star, Minus, Plus, Lightbulb, ChefHat, Edit3, Trash2 } from 'lucide-react';
 import { Recipe } from '../types/recipe';
 import { useRecipes } from '../context/RecipeContext';
 
@@ -7,15 +7,19 @@ interface RecipeDetailPageProps {
   recipe: Recipe;
   onBack: () => void;
   onStartCookingMode: (recipe: Recipe) => void;
+  onEditRecipe: (recipe: Recipe) => void;
 }
 
 export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
   recipe,
   onBack,
   onStartCookingMode,
+  onEditRecipe,
 }) => {
-  const { bookmarks, toggleBookmark, trackUserInterest } = useRecipes();
+  const { bookmarks, toggleBookmark, trackUserInterest, currentUser, deleteRecipe } = useRecipes();
   const [portion, setPortion] = useState<number>(recipe.portionBase || recipe.portion_base || 2);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -31,10 +35,24 @@ export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
   const ingredientsList = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const stepsList = Array.isArray(recipe.steps) ? recipe.steps : [];
 
+  // User can edit/delete if they created this recipe or are logged in as the author
+  const isAuthor = currentUser && (
+    recipe.author.toLowerCase() === currentUser.name.toLowerCase() ||
+    recipe.author === 'Pengguna Resep Kita' ||
+    recipe.author === 'Saya Sendiri'
+  );
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    await deleteRecipe(recipe.id);
+    setIsDeleting(false);
+    onBack();
+  };
+
   return (
     <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 xl:px-12 pt-4 pb-20 animate-in fade-in duration-200">
-      {/* Top Navigation Bar */}
-      <div className="flex items-center justify-between py-3 mb-4">
+      {/* Top Navigation Bar with Edit/Delete Actions */}
+      <div className="flex items-center justify-between py-3 mb-4 flex-wrap gap-3">
         <button 
           onClick={onBack}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 text-sm font-bold shadow-sm transition-all cursor-pointer"
@@ -43,24 +61,79 @@ export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
           <span>Kembali ke Jelajah Resep</span>
         </button>
 
-        <button 
-          onClick={() => toggleBookmark(recipe.id)} 
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl border transition-all cursor-pointer text-sm font-bold shadow-sm ${
-            isFav 
-              ? 'bg-brand-50 border-brand-300 text-brand-700' 
-              : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
-          }`}
-          title={isFav ? 'Hapus Simpanan' : 'Simpan Resep'}
-        >
-          <Bookmark className={`w-4 h-4 ${isFav ? 'fill-brand-500 text-brand-500' : 'text-stone-500'}`} />
-          <span>{isFav ? 'Tersimpan di Favorit' : 'Simpan Resep'}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Edit & Delete Buttons for the recipe author */}
+          {isAuthor && (
+            <>
+              <button
+                onClick={() => onEditRecipe(recipe)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 text-sm font-bold shadow-sm transition-all cursor-pointer"
+                title="Edit resep ini"
+              >
+                <Edit3 className="w-4 h-4 text-amber-600" />
+                <span>Edit Resep</span>
+              </button>
+
+              <button
+                onClick={() => setShowConfirmDelete(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-sm font-bold shadow-sm transition-all cursor-pointer"
+                title="Hapus resep ini"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600" />
+                <span>Hapus</span>
+              </button>
+            </>
+          )}
+
+          <button 
+            onClick={() => toggleBookmark(recipe.id)} 
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl border transition-all cursor-pointer text-sm font-bold shadow-sm ${
+              isFav 
+                ? 'bg-brand-50 border-brand-300 text-brand-700' 
+                : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
+            }`}
+            title={isFav ? 'Hapus Simpanan' : 'Simpan Resep'}
+          >
+            <Bookmark className={`w-4 h-4 ${isFav ? 'fill-brand-500 text-brand-500' : 'text-stone-500'}`} />
+            <span>{isFav ? 'Tersimpan di Favorit' : 'Simpan Resep'}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Main Recipe Grid Layout (2 Kolom Lebar di Desktop) */}
+      {/* Confirmation Modal for Delete */}
+      {showConfirmDelete && (
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-black text-stone-900 mb-2">Hapus Resep Masakan Ini?</h3>
+            <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+              Resep <b>"{recipe.title}"</b> akan dihapus secara permanen dari database. Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-5 py-2.5 rounded-2xl border border-stone-200 text-stone-700 font-bold text-sm hover:bg-stone-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Menghapus...' : 'Ya, Hapus Resep'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Recipe Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Kolom Kiri: Hero Card, Ringkasan, Bahan & Porsi (Desktop: 5 dari 12 Kolom) */}
+        {/* Kolom Kiri: Hero Card, Ringkasan, Bahan & Porsi */}
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
             {/* Hero Image */}
@@ -88,7 +161,12 @@ export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
                 {recipe.title}
               </h1>
               <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-500 font-medium mb-4">
-                <span>Koki: <b className="text-stone-800">{recipe.author}</b></span>
+                <span>Penulis: <b className="text-stone-800">{recipe.author}</b></span>
+                {isAuthor && (
+                  <span className="px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 font-bold text-[10px]">
+                    Resep Milikmu
+                  </span>
+                )}
               </div>
               <p className="text-sm text-stone-600 leading-relaxed">
                 {recipe.desc}
@@ -174,7 +252,7 @@ export const RecipeDetailPage: React.FC<RecipeDetailPageProps> = ({
           </div>
         </div>
 
-        {/* Kolom Kanan: CTA Banner Masak Terpandu, Langkah Memasak, Tips (Desktop: 7 dari 12 Kolom) */}
+        {/* Kolom Kanan: CTA Banner Masak Terpandu, Langkah Memasak, Tips */}
         <div className="lg:col-span-7 space-y-6">
           {/* CTA Banner: Guided Cooking Mode */}
           <div className="bg-gradient-to-r from-brand-500 via-brand-600 to-amber-500 rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl shadow-brand-500/20">
