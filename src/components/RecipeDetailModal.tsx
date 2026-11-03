@@ -22,11 +22,23 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   React.useEffect(() => {
     if (recipe) {
       setPortion(recipe.portionBase || recipe.portion_base || 2);
-      if (recipe.tags) {
+      if (recipe.tags && Array.isArray(recipe.tags)) {
         recipe.tags.forEach(t => trackUserInterest(t));
       }
     }
   }, [recipe]);
+
+  // Lock body scroll when modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen || !recipe) return null;
 
@@ -34,14 +46,22 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   const basePortion = recipe.portionBase || recipe.portion_base || 2;
   const multiplier = portion / basePortion;
 
+  const ingredientsList = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const stepsList = Array.isArray(recipe.steps) ? recipe.steps : [];
+
   return (
-    <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative my-6 animate-in fade-in zoom-in-95 duration-200">
-        
+    <div 
+      className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative my-6 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Image & Floating Buttons */}
-        <div className="relative h-64 sm:h-80 w-full bg-stone-100">
+        <div className="relative h-64 sm:h-80 w-full bg-stone-100 flex-shrink-0">
           <img 
-            src={recipe.image} 
+            src={recipe.image || 'https://placehold.co/800x600/ea580c/ffffff?text=Resep+Lezat'} 
             alt={recipe.title} 
             className="w-full h-full object-cover"
             onError={(e) => {
@@ -65,7 +85,8 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6 sm:p-8">
+        {/* Scrollable Modal Content */}
+        <div className="p-6 sm:p-8 overflow-y-auto">
           {/* Title & Bookmark Button */}
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
@@ -150,8 +171,8 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             </div>
 
             <ul className="space-y-2.5">
-              {recipe.ingredients.map((ing, idx) => {
-                const scaledQty = Math.round((ing.qty * multiplier) * 10) / 10;
+              {ingredientsList.map((ing, idx) => {
+                const scaledQty = Math.round((Number(ing.qty || 0) * multiplier) * 10) / 10;
                 return (
                   <li key={idx} className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-stone-50 border border-stone-200 bg-white transition-colors">
                     <label className="flex items-center gap-3.5 cursor-pointer select-none">
@@ -171,7 +192,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
           <div className="mb-8">
             <h3 className="font-black text-lg text-stone-900 mb-4">Langkah-Langkah Memasak</h3>
             <ol className="space-y-3">
-              {recipe.steps.map((step, idx) => (
+              {stepsList.map((step, idx) => (
                 <li key={idx} className="flex items-start gap-3.5 bg-stone-50 p-4 rounded-2xl border border-stone-200">
                   <span className="w-7 h-7 rounded-full bg-brand-500 text-white text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">
                     {idx + 1}

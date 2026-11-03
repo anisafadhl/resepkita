@@ -25,7 +25,13 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
       setCurrentStep(0);
       setTimerSeconds(300);
       setIsTimerRunning(false);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -44,7 +50,10 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
 
   if (!isOpen || !recipe) return null;
 
-  const totalSteps = recipe.steps.length;
+  const stepsList = Array.isArray(recipe.steps) && recipe.steps.length > 0 
+    ? recipe.steps 
+    : ['Ikuti petunjuk umum persiapan masakan.'];
+  const totalSteps = stepsList.length;
 
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
@@ -75,10 +84,16 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
   const timeFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md overflow-y-auto flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative">
+    <div 
+      className="fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md overflow-y-auto flex items-center justify-center p-4 animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-brand-500 text-white p-6 flex items-center justify-between">
+        <div className="bg-brand-500 text-white p-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-white/20">
               <Sparkles className="w-6 h-6" />
@@ -102,7 +117,7 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
         </div>
 
         {/* Body content */}
-        <div className="p-6 sm:p-10 text-center">
+        <div className="p-6 sm:p-10 text-center overflow-y-auto">
           {/* Progress badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 text-brand-700 text-xs sm:text-sm font-black mb-6">
             Langkah {currentStep + 1} dari {totalSteps}
@@ -111,7 +126,7 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
           {/* Current Step Instruction */}
           <div className="min-h-[140px] flex items-center justify-center mb-8 px-2">
             <p className="text-lg sm:text-2xl font-bold text-stone-900 leading-relaxed max-w-xl">
-              "{recipe.steps[currentStep]}"
+              "{stepsList[currentStep]}"
             </p>
           </div>
 
