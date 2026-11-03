@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChefHat, Search, XCircle, PlusCircle, User, Database } from 'lucide-react';
+import { ChefHat, Search, XCircle, PlusCircle, User } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 
 interface HeaderProps {
@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectExploreTab,
   onShowMyRecipes,
 }) => {
-  const { currentUser, isOnlineDatabase } = useRecipes();
+  const { currentUser } = useRecipes();
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200">
@@ -34,20 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
             <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-black bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent">
-                Resep Kita
-              </span>
-              {isOnlineDatabase ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                  <Database className="w-3 h-3" /> Supabase Cloud
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500" title="Data tersimpan lokal di browser">
-                  Lokal
-                </span>
-              )}
-            </div>
+            <span className="text-2xl font-black bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent block">
+              Resep Kita
+            </span>
             <span className="hidden sm:block text-xs text-stone-500 font-medium">Teman Masak Rumahan Semua Umur</span>
           </div>
         </button>
@@ -104,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-3 rounded-2xl text-xs font-bold border border-stone-200 transition-all cursor-pointer"
             >
               <User className="w-4 h-4 text-stone-500" />
-              <span>Masuk</span>
+              <span>Masuk / Daftar</span>
             </button>
           )}
         </div>

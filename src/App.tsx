@@ -206,76 +206,34 @@ export const App: React.FC = () => {
 
           {/* Filter Section */}
           {activeTab === 'explore' && (
-            <div className="mb-6 space-y-4">
-              {/* Quick popular tags */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 text-xs sm:text-sm">
-                <span className="text-stone-400 font-bold text-xs flex-shrink-0 mr-1 flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-brand-500" /> Populer:
-                </span>
-                
-                <button 
-                  onClick={() => setActiveTag('')}
-                  className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                    activeTag === '' 
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' 
-                      : 'bg-white border border-stone-200 text-stone-700 hover:border-brand-500'
-                  }`}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-stone-600 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1.5 font-bold text-stone-800">
+                  <SlidersHorizontal className="w-4 h-4 text-brand-600" />
+                  <span>Urutkan & Saring:</span>
+                </div>
+                <select 
+                  value={difficultyFilter}
+                  onChange={(e) => setDifficultyFilter(e.target.value)}
+                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
                 >
-                  Semua Resep
-                </button>
-
-                {[
-                  { tag: 'manis', label: '🍰 Aneka Manis & Dessert' },
-                  { tag: 'gurih', label: '🍲 Aneka Gurih & Lauk' },
-                  { tag: 'ayam', label: '🍗 Aneka Ayam' },
-                  { tag: 'sayur', label: '🥗 Sayur & Sup Sehat' },
-                  { tag: 'pedas', label: '🌶️ Sambal & Pedas' },
-                  { tag: 'hemat', label: '💰 Budget Hemat' },
-                ].map(({ tag, label }) => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                      activeTag === tag
-                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                        : 'bg-white border border-stone-200 text-stone-700 hover:border-brand-500'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                  <option value="all">Semua Kesulitan</option>
+                  <option value="Mudah">Mudah & Praktis</option>
+                  <option value="Sedang">Sedang</option>
+                </select>
+                <select 
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value)}
+                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Semua Waktu Masak</option>
+                  <option value="20">Kilat (&le; 20 menit)</option>
+                  <option value="40">Santai (&le; 40 menit)</option>
+                </select>
               </div>
 
-              {/* Dropdown filters */}
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-stone-600 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 font-bold text-stone-800">
-                    <SlidersHorizontal className="w-4 h-4 text-brand-600" />
-                    <span>Urutkan & Saring:</span>
-                  </div>
-                  <select 
-                    value={difficultyFilter}
-                    onChange={(e) => setDifficultyFilter(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
-                  >
-                    <option value="all">Semua Kesulitan</option>
-                    <option value="Mudah">Mudah & Praktis</option>
-                    <option value="Sedang">Sedang</option>
-                  </select>
-                  <select 
-                    value={timeFilter}
-                    onChange={(e) => setTimeFilter(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
-                  >
-                    <option value="all">Semua Waktu Masak</option>
-                    <option value="20">Kilat (&le; 20 menit)</option>
-                    <option value="40">Santai (&le; 40 menit)</option>
-                  </select>
-                </div>
-
-                <div className="font-bold text-brand-700 bg-brand-50 px-3 py-1 rounded-xl">
-                  {filteredRecipes.length} Resep Siap Masak
-                </div>
+              <div className="font-bold text-brand-700 bg-brand-50 px-3 py-1 rounded-xl">
+                {filteredRecipes.length} Resep Siap Masak
               </div>
             </div>
           )}
