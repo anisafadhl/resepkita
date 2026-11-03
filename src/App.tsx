@@ -168,7 +168,7 @@ export const App: React.FC = () => {
       )}
 
       {viewMode === 'home' && (
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+        <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 xl:px-12 pt-6">
           {/* User Logged-in Banner */}
           <UserBanner onShowMyRecipes={handleShowMyRecipes} />
 
@@ -280,9 +280,9 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {/* Recipe Cards Grid */}
+          {/* Recipe Cards Grid (Responsive 1/2/3/4 Kolom di Layar Lebar) */}
           {filteredRecipes.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {filteredRecipes.map((recipe) => (
                 <RecipeCard 
                   key={recipe.id} 
