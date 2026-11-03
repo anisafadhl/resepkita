@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, RotateCcw, Volume2, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { X, Play, RotateCcw, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { Recipe } from '../types/recipe';
 import confetti from 'canvas-confetti';
 
@@ -36,7 +36,6 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
       }, 1000);
     } else if (timerSeconds === 0 && isTimerRunning) {
       setIsTimerRunning(false);
-      speakText('Waktu memasak selesai. Periksa kematangan masakanmu.');
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -47,21 +46,6 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
 
   const totalSteps = recipe.steps.length;
 
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'id-ID';
-      utterance.rate = 0.95;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const handleSpeakCurrentStep = () => {
-    const stepText = `Langkah ke ${currentStep + 1}. ${recipe.steps[currentStep]}`;
-    speakText(stepText);
-  };
-
   const handleNext = () => {
     if (currentStep === totalSteps - 1) {
       confetti({
@@ -71,7 +55,6 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
       });
       onComplete();
       onClose();
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     } else {
       setCurrentStep(prev => prev + 1);
       setTimerSeconds(300);
@@ -110,10 +93,7 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
             </div>
           </div>
           <button 
-            onClick={() => {
-              if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-              onClose();
-            }} 
+            onClick={onClose} 
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all cursor-pointer"
             title="Keluar dari mode memasak"
           >
@@ -133,17 +113,6 @@ export const CookingModeModal: React.FC<CookingModeModalProps> = ({
             <p className="text-lg sm:text-2xl font-bold text-stone-900 leading-relaxed max-w-xl">
               "{recipe.steps[currentStep]}"
             </p>
-          </div>
-
-          {/* Audio helper button */}
-          <div className="flex justify-center mb-8">
-            <button 
-              onClick={handleSpeakCurrentStep} 
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-stone-100 hover:bg-brand-50 text-stone-700 hover:text-brand-600 text-xs sm:text-sm font-bold border border-stone-200 transition-all cursor-pointer"
-            >
-              <Volume2 className="w-4 h-4 text-brand-500" />
-              <span>Dengarkan Langkah Ini</span>
-            </button>
           </div>
 
           {/* Kitchen Timer Widget */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Bookmark, Volume2, Sparkles, Clock, Smile, Star, Minus, Plus, Lightbulb } from 'lucide-react';
+import { X, Bookmark, Sparkles, Clock, Smile, Star, Minus, Plus, Lightbulb } from 'lucide-react';
 import { Recipe } from '../types/recipe';
 import { useRecipes } from '../context/RecipeContext';
 
@@ -16,7 +16,7 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   onClose,
   onStartCookingMode,
 }) => {
-  const { bookmarks, toggleBookmark, showToast, trackUserInterest } = useRecipes();
+  const { bookmarks, toggleBookmark, trackUserInterest } = useRecipes();
   const [portion, setPortion] = useState<number>(2);
 
   React.useEffect(() => {
@@ -33,21 +33,6 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
   const isFav = bookmarks.includes(recipe.id);
   const basePortion = recipe.portionBase || recipe.portion_base || 2;
   const multiplier = portion / basePortion;
-
-  const handleSpeakSummary = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const mainIngredients = recipe.ingredients.slice(0, 3).map(i => i.name).join(', ');
-      const summary = `Resep ${recipe.title}. Waktu masak sekitar ${recipe.time} menit. Tingkat kesulitan ${recipe.difficulty}. Bahan utama adalah ${mainIngredients}.`;
-      const utterance = new SpeechSynthesisUtterance(summary);
-      utterance.lang = 'id-ID';
-      utterance.rate = 0.95;
-      window.speechSynthesis.speak(utterance);
-      showToast('🔊 Membaca ringkasan resep...');
-    } else {
-      showToast('Fitur suara tidak didukung browser ini.', true);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4">
@@ -130,22 +115,14 @@ export const RecipeDetailModal: React.FC<RecipeDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Action Row: Guided Cooking Mode & Audio Listen */}
-          <div className="flex flex-wrap gap-3 mb-8">
+          {/* Action Row: Guided Cooking Mode */}
+          <div className="mb-8">
             <button 
               onClick={() => onStartCookingMode(recipe)} 
-              className="flex-1 min-w-[200px] flex items-center justify-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md shadow-brand-500/30 transition-all cursor-pointer active:scale-95 text-sm sm:text-base"
+              className="w-full flex items-center justify-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md shadow-brand-500/30 transition-all cursor-pointer active:scale-95 text-sm sm:text-base"
             >
               <Sparkles className="w-5 h-5" />
               <span>Mulai Masak Terpandu</span>
-            </button>
-            <button 
-              onClick={handleSpeakSummary} 
-              className="flex items-center justify-center gap-2 bg-stone-100 hover:bg-brand-50 text-stone-700 hover:text-brand-600 font-bold py-3.5 px-5 rounded-2xl border border-stone-200 transition-all cursor-pointer text-sm"
-              title="Dengarkan ringkasan audio"
-            >
-              <Volume2 className="w-5 h-5 text-brand-500" />
-              <span>Dengarkan</span>
             </button>
           </div>
 
