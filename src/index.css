@@ -1232,31 +1232,76 @@ ul, ol { margin: 0; padding: 0; }
     border-bottom: 1px solid var(--line);
     flex-direction: column;
     gap: 4px;
-    padding: 14px 20px 20px;
+    padding: 16px 20px 24px;
     display: none;
     box-shadow: var(--shadow-md);
+    max-height: calc(100vh - 72px);
+    overflow-y: auto;
   }
   .nav-links.open { display: flex; }
-  .nav-links button, .nav-links a { display: block; padding: 11px 0; text-align: left; }
+  .nav-links button, .nav-links a {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    font-size: 1rem;
+    border-radius: 12px;
+    text-align: left;
+    width: 100%;
+  }
+  .nav-links button:hover, .nav-links button.active {
+    background: #fff2e8;
+  }
+  .nav-links button.active::after { display: none; }
   .nav-toggle { display: block; }
 }
 
 @media (max-width: 860px) {
   .hero-grid { grid-template-columns: 1fr; }
-  .hero-card { min-height: 260px; }
+  .hero-card { min-height: 240px; }
   .footer-grid { grid-template-columns: 1fr; }
   .profil-grid { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 700px) {
+  .nav-cta .nav-search { display: none; }
+  .nav-item-search { display: block; margin-top: 8px; width: 100%; }
+}
+
 @media (max-width: 560px) {
+  .wrap { width: min(100% - 28px, var(--max)); }
   .kategori-grid, .resep-grid, .resep-grid-dua, .info-strip { grid-template-columns: 1fr; }
   .section-head { align-items: flex-start; }
-  .detail-banner { flex-direction: column; align-items: flex-start; }
-  .search-box { max-width: 100%; }
-  .nav-search { width: 140px; padding-left: 13px; }
-  .nav-profile { padding-right: 6px; }
+  .detail-banner { flex-direction: column; align-items: flex-start; padding: 24px 20px; }
+  .detail-banner::before { font-size: 8rem; opacity: 0.2; }
+  .search-box {
+    max-width: 100%;
+    flex-direction: column;
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 10px;
+    box-shadow: none;
+  }
+  .search-box input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 12px 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .search-box button {
+    width: 100%;
+    padding: 12px 20px;
+  }
+  .hero-actions .btn { width: 100%; justify-content: center; }
+  .hero-stats { gap: 20px; }
+  .hero-stats div strong { font-size: 1.4rem; }
+  .nav-profile { padding: 4px 8px 4px 4px; }
   .nav-profile .nav-prof-text { display: none; }
   .banner-actions .btn { width: 100%; justify-content: center; }
+  .langkah-list li { grid-template-columns: 38px 1fr; gap: 12px; padding: 14px 16px; }
+  .langkah-list li::before { width: 38px; height: 38px; border-radius: 10px; font-size: 0.9rem; }
   .modal {
     padding: 0;
     align-items: flex-end;
@@ -1265,8 +1310,8 @@ ul, ol { margin: 0; padding: 0; }
     width: 100%;
     margin: 0;
     border-radius: 26px 26px 0 0;
-    padding: 26px 20px calc(20px + env(safe-area-inset-bottom, 0px));
-    max-height: 92vh;
+    padding: 24px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    max-height: 90vh;
     overflow-y: auto;
   }
 }
