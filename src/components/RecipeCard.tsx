@@ -18,6 +18,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect, onEdit
   const isAuthor = currentUser && (
     recipe.author.toLowerCase() === currentUser.name.toLowerCase() ||
     recipe.author === 'Pengguna Resep Kita' ||
+    recipe.author === 'Koki Resep Kita' ||
     recipe.author === 'Saya Sendiri'
   );
 
@@ -41,7 +42,6 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect, onEdit
 
         {/* Action icons container */}
         <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5">
-          {/* Quick Edit/Delete buttons on hover for author */}
           {isAuthor && onEdit && (
             <button
               onClick={(e) => {
@@ -78,26 +78,23 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, onSelect, onEdit
             }`}
             title={isFav ? 'Hapus dari Simpanan' : 'Simpan Resep'}
           >
-            <Bookmark className={`w-4 h-4 ${isFav ? 'fill-brand-500 text-brand-500' : ''}`} />
+            <Bookmark className={`w-5 h-5 ${isFav ? 'fill-brand-500 text-brand-500' : ''}`} />
           </button>
         </div>
       </div>
 
       <div className="p-5 flex-1 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between gap-2 text-xs mb-1.5">
-            <div className="flex items-center gap-1.5 text-amber-500 font-bold">
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span>{recipe.rating}</span>
-              <span className="text-stone-400 font-medium">({recipe.reviewsCount || recipe.reviews_count || 1})</span>
-            </div>
+          <div className="flex items-center gap-2 text-xs text-amber-500 font-bold mb-1.5">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+            <span>{recipe.rating}</span>
+            <span className="text-stone-400 font-medium">({recipe.reviewsCount || recipe.reviews_count || 1} Ulasan)</span>
             {isAuthor && (
-              <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">
                 Milikmu
               </span>
             )}
           </div>
-
           <h3 
             onClick={() => onSelect(recipe)} 
             className="font-bold text-stone-900 text-lg leading-snug hover:text-brand-600 cursor-pointer mb-2 line-clamp-1"

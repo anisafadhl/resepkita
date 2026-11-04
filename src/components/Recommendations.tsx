@@ -30,8 +30,8 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
     );
   }
 
-  // Top up with highest rated recipes if less than 4
-  if (recommendedList.length < 4) {
+  // Top up with highest rated recipes if less than 3
+  if (recommendedList.length < 3) {
     const topRated = [...recipes].sort((a, b) => b.rating - a.rating);
     topRated.forEach(r => {
       if (!recommendedList.some(item => item.id === r.id)) {
@@ -40,9 +40,9 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
     });
   }
 
-  const topItems = recommendedList.slice(0, 4);
+  const topThree = recommendedList.slice(0, 3);
 
-  if (topItems.length === 0) return null;
+  if (topThree.length === 0) return null;
 
   return (
     <section className="mb-10">
@@ -52,10 +52,14 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
             <span className="p-1.5 rounded-lg bg-brand-100 text-brand-600">
               <Sparkles className="w-5 h-5" />
             </span>
-            <h2 className="text-xl sm:text-2xl font-black text-stone-900">Rekomendasi Spesial Untukmu</h2>
+            <h2 className="text-xl sm:text-2xl font-black text-stone-900">Rekomendasi Untukmu</h2>
           </div>
           <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            Berdasarkan masakan terpopuler & sering dicari oleh komunitas
+            {highestCount > 1 && topTopic !== 'semua' ? (
+              <span>✨ Menyesuaikan seleramu: kamu sering mencari topik <b className="text-brand-600 uppercase">{topTopic}</b></span>
+            ) : (
+              'Berdasarkan masakan yang sering kamu minati & cari'
+            )}
           </p>
         </div>
         <button 
@@ -66,8 +70,8 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {topItems.map(recipe => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {topThree.map(recipe => {
           const isFav = bookmarks.includes(recipe.id);
           return (
             <div 
@@ -75,7 +79,7 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
               onClick={() => onSelectRecipe(recipe)} 
               className="bg-gradient-to-br from-amber-500/10 via-brand-50 to-white rounded-3xl p-4 border border-brand-200/60 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group relative overflow-hidden"
             >
-              <div className="relative w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0">
                 <img 
                   src={recipe.image} 
                   alt={recipe.title} 
@@ -88,14 +92,14 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 text-[11px] text-amber-600 font-black mb-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Pilihan Terbaik</span>
+                <div className="flex items-center gap-1.5 text-xs text-amber-600 font-black mb-1">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Paling Cocok Untukmu</span>
                 </div>
-                <h4 className="font-bold text-stone-900 text-sm truncate group-hover:text-brand-600 transition-colors">
+                <h4 className="font-bold text-stone-900 text-sm sm:text-base truncate group-hover:text-brand-600 transition-colors">
                   {recipe.title}
                 </h4>
-                <div className="flex items-center gap-3 text-xs text-stone-500 mt-1 font-medium">
+                <div className="flex items-center gap-3 text-xs text-stone-500 mt-1.5 font-medium">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-stone-400" /> {recipe.time}m
                   </span>
@@ -110,7 +114,7 @@ export const Recommendations: React.FC<RecommendationsProps> = ({ onSelectRecipe
                   e.stopPropagation();
                   toggleBookmark(recipe.id);
                 }} 
-                className="p-1.5 text-stone-400 hover:text-brand-600 transition-colors cursor-pointer" 
+                className="p-2 text-stone-400 hover:text-brand-600 transition-colors cursor-pointer" 
                 title="Simpan"
               >
                 <Bookmark className={`w-4 h-4 ${isFav ? 'fill-brand-500 text-brand-500' : ''}`} />
