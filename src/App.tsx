@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRecipes } from './context/RecipeContext';
 import { Header } from './components/Header';
 import { RecipeCard } from './components/RecipeCard';
@@ -26,7 +26,155 @@ export const App: React.FC = () => {
   const [recipeToEdit, setRecipeToEdit] = useState<Recipe | null>(null);
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
 
-  // Handlers
+  // History sync flag to prevent loop
+  const isPopStateRef = useRef(false);
+
+  // Read URL params or hash on initial load
+  useEffect(() => {
+    const parseUrlState = () => {
+      const hash = window.location.hash.replace('#', '');
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      const catParam = params.get('kat');
+      const qParam = params.get('q');
+      const idParam = params.get('id');
+
+      if (idParam && recipes.length > 0) {
+        const found = recipes.find((r) => r.id === idParam);
+        if (found) {
+          setSelectedRecipe(found);
+          setCurrentView('detail');
+          return;
+        }
+      }
+
+      if (viewParam === 'profil') {
+        setCurrentView('profil');
+      } else if (viewParam === 'kategori' || catParam || qParam) {
+        setCurrentView('kategori');
+        if (catParam) setSelectedCategory(catParam);
+        if (qParam) setSearchQuery(qParam);
+      } else if (hash === 'kategori' || hash === 'tren' || hash === 'tips') {
+        setCurrentView('home');
+        setTimeout(() => {
+          document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        setCurrentView('home');
+      }
+    };
+
+    parseUrlState();
+  }, [recipes]);
+
+  // Sync state changes to browser History (enabling Back & Forward buttons)
+  useEffect(() => {
+    if (isPopStateRef.current) {
+      isPopStateRef.current = false;
+      return;
+    }
+
+    const state = {
+      view: currentView,
+      category: selectedCategory,
+      query: searchQuery,
+      recipeId: selectedRecipe?.id || null,
+    };
+
+    let url = window.location.pathname;
+    const queryParts: string[] = [];
+
+    if (currentView === 'detail' && selectedRecipe) {
+      queryParts.push(`view=detail&id=${encodeURIComponent(selectedRecipe.id)}`);
+    } else if (currentView === 'profil') {
+      queryParts.push('view=profil');
+    } else if (currentView === 'kategori') {
+      queryParts.push('view=kategori');
+      if (selectedCategory) queryParts.push(`kat=${encodeURIComponent(selectedCategory)}`);
+      if (searchQuery.trim()) queryParts.push(`q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+
+    if (queryParts.length > 0) {
+      url += '?' + queryParts.join('&');
+    }
+
+    // Only push state if url changed
+    const currentFull = window.location.pathname + window.location.search;
+    if (currentFull !== url) {
+      window.history.pushState(state, '', url);
+    }
+  }, [currentView, selectedCategory, searchQuery, selectedRecipe]);
+
+  // Listen to browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      isPopStateRef.current = true;
+      const state = e.state;
+
+      // Close open modals first on back button
+      if (isLoginOpen) {
+        setIsLoginOpen(false);
+        return;
+      }
+      if (isAddOpen) {
+        setIsAddOpen(false);
+        return;
+      }
+      if (recipeToDelete) {
+        setRecipeToDelete(null);
+        return;
+      }
+
+      if (state) {
+        setCurrentView(state.view || 'home');
+        setSelectedCategory(state.category || null);
+        setSearchQuery(state.query || '');
+        if (state.recipeId) {
+          const found = recipes.find((r) => r.id === state.recipeId);
+          setSelectedRecipe(found || null);
+        } else {
+          setSelectedRecipe(null);
+        }
+      } else {
+        // Fallback to URL inspection
+        const params = new URLSearchParams(window.location.search);
+        const view = params.get('view');
+        const id = params.get('id');
+        const kat = params.get('kat');
+        const q = params.get('q');
+
+        if (view === 'detail' && id) {
+          const found = recipes.find((r) => r.id === id);
+          setSelectedRecipe(found || null);
+          setCurrentView('detail');
+        } else if (view === 'profil') {
+          setCurrentView('profil');
+        } else if (view === 'kategori' || kat || q) {
+          setCurrentView('kategori');
+          setSelectedCategory(kat || null);
+          setSearchQuery(q || '');
+        } else {
+          setCurrentView('home');
+          setSelectedRecipe(null);
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [recipes, isLoginOpen, isAddOpen, recipeToDelete]);
+
+  // Navigation Handlers
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setCurrentView('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleOpenLogin = (mode: 'login' | 'daftar' = 'login') => {
     setLoginMode(mode);
     setIsLoginOpen(true);
@@ -56,7 +204,7 @@ export const App: React.FC = () => {
     if (!recipeToDelete) return;
     await deleteRecipe(recipeToDelete.id);
     if (selectedRecipe?.id === recipeToDelete.id) {
-      setCurrentView('kategori');
+      handleGoBack();
       setSelectedRecipe(null);
     }
     setRecipeToDelete(null);
@@ -79,7 +227,7 @@ export const App: React.FC = () => {
   const categoryFilteredRecipes = React.useMemo(() => {
     let list = [...recipes];
     if (selectedCategory) {
-      list = list.filter((r) => r.category === selectedCategory);
+      list = list.filter((r: Recipe) => r.category === selectedCategory);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -334,6 +482,10 @@ export const App: React.FC = () => {
             <div className="wrap">
               <ul className="breadcrumb">
                 <li>
+                  <button onClick={handleGoBack}>← Kembali</button>
+                </li>
+                <li className="sep">›</li>
+                <li>
                   <button onClick={() => setCurrentView('home')}>Beranda</button>
                 </li>
                 <li className="sep">›</li>
@@ -444,6 +596,7 @@ export const App: React.FC = () => {
       {/* VIEW: PROFIL (SESUAI GAMBAR PENGGUNA) */}
       {currentView === 'profil' && (
         <ProfilView
+          onGoBack={handleGoBack}
           onOpenLogin={handleOpenLogin}
           onOpenCreate={handleOpenCreate}
           onSelectRecipe={handleSelectRecipe}
@@ -457,7 +610,7 @@ export const App: React.FC = () => {
       {currentView === 'detail' && selectedRecipe && (
         <RecipeDetailView
           recipe={selectedRecipe}
-          onBack={() => setCurrentView('kategori')}
+          onBack={handleGoBack}
           onSelectOtherRecipe={handleSelectRecipe}
           onEditRecipe={handleEditRecipe}
           onDeleteRecipe={handleDeleteRecipe}

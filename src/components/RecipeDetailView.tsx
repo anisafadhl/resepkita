@@ -14,7 +14,6 @@ interface RecipeDetailViewProps {
 export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
   recipe,
   onBack,
-  onSelectOtherRecipe,
   onEditRecipe,
   onDeleteRecipe,
 }) => {
@@ -58,12 +57,23 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
 
   return (
     <main>
-      {/* Breadcrumb Head */}
+      {/* Breadcrumb Head with Back Button */}
       <section className="page-head" style={{ padding: '24px 0' }}>
         <div className="wrap">
           <ul className="breadcrumb" style={{ margin: 0 }}>
             <li>
-              <button onClick={onBack}>Beranda</button>
+              <button
+                onClick={onBack}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 700,
+                  color: 'var(--brand)',
+                }}
+              >
+                ← Kembali
+              </button>
             </li>
             <li className="sep">›</li>
             <li>{kat.nama}</li>
@@ -242,7 +252,7 @@ export const RecipeDetailView: React.FC<RecipeDetailViewProps> = ({
 
               <p style={{ marginTop: '30px' }}>
                 <button className="btn btn-ghost" onClick={onBack}>
-                  ← Kembali ke daftar resep
+                  ← Kembali ke halaman sebelumnya
                 </button>
               </p>
             </div>

@@ -4,6 +4,7 @@ import { RecipeCard } from '../components/RecipeCard';
 import { Recipe } from '../types/recipe';
 
 interface ProfilViewProps {
+  onGoBack: () => void;
   onOpenLogin: (mode?: 'login' | 'daftar') => void;
   onOpenCreate: () => void;
   onSelectRecipe: (r: Recipe) => void;
@@ -13,6 +14,7 @@ interface ProfilViewProps {
 }
 
 export const ProfilView: React.FC<ProfilViewProps> = ({
+  onGoBack,
   onOpenLogin,
   onOpenCreate,
   onSelectRecipe,
@@ -29,6 +31,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({
         <section className="page-head">
           <div className="wrap">
             <ul className="breadcrumb">
+              <li>
+                <button onClick={onGoBack}>← Kembali</button>
+              </li>
+              <li className="sep">›</li>
               <li>
                 <button onClick={() => onBrowseCategory()}>Beranda</button>
               </li>
@@ -89,6 +95,10 @@ export const ProfilView: React.FC<ProfilViewProps> = ({
       <section className="page-head">
         <div className="wrap">
           <ul className="breadcrumb">
+            <li>
+              <button onClick={onGoBack}>← Kembali</button>
+            </li>
+            <li className="sep">›</li>
             <li>
               <button onClick={() => onBrowseCategory()}>Beranda</button>
             </li>
