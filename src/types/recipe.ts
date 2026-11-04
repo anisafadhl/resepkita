@@ -17,9 +17,10 @@ export interface Recipe {
   reviewsCount?: number;
   image: string;
   desc: string;
+  category?: 'makanan-berat' | 'makanan-ringan' | 'kue-dan-roti' | 'minuman' | string;
   portion_base?: number;
   portionBase?: number;
-  ingredients: Ingredient[];
+  ingredients: (Ingredient | string)[];
   steps: string[];
   tips?: string;
   created_at?: string;
@@ -29,4 +30,15 @@ export interface UserProfile {
   id?: string;
   name: string;
   email?: string;
+  role?: 'user' | 'admin';
+}
+
+export interface CategoryInfo {
+  slug: string;
+  nama: string;
+  emoji: string;
+  deskripsi: string;
+  pola: string;
+  warna: [string, string];
+  label: string;
 }

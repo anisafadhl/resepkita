@@ -1,393 +1,598 @@
-import React, { useState, useMemo } from 'react';
-import { Utensils, Bookmark, TrendingUp, SlidersHorizontal, SearchX, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
 import { useRecipes } from './context/RecipeContext';
 import { Header } from './components/Header';
-import { UserBanner } from './components/UserBanner';
-import { Recommendations } from './components/Recommendations';
 import { RecipeCard } from './components/RecipeCard';
-import { RecipeDetailModal } from './components/RecipeDetailModal';
-import { CookingModeModal } from './components/CookingModeModal';
-import { AddRecipeModal } from './components/AddRecipeModal';
 import { LoginModal } from './components/LoginModal';
-import { MobileNav } from './components/MobileNav';
+import { AddRecipeModal } from './components/AddRecipeModal';
+import { ProfilView } from './components/ProfilView';
+import { RecipeDetailView } from './components/RecipeDetailView';
 import { Toast } from './components/Toast';
 import { Recipe } from './types/recipe';
+import { CATEGORIES, COOKING_TIPS } from './data/categories';
 
 export const App: React.FC = () => {
-  const { recipes, bookmarks, currentUser, showToast, deleteRecipe } = useRecipes();
+  const { recipes, deleteRecipe, showToast } = useRecipes();
 
-  // Navigation & Search States
-  const [activeTab, setActiveTab] = useState<'explore' | 'bookmarks' | 'myRecipes'>('explore');
+  // Page Routing State
+  const [currentView, setCurrentView] = useState<'home' | 'kategori' | 'profil' | 'detail'>('home');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTag, setActiveTag] = useState('');
-  const [difficultyFilter, setDifficultyFilter] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
 
   // Modal States
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<'login' | 'daftar'>('login');
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [recipeToEdit, setRecipeToEdit] = useState<Recipe | null>(null);
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [isCookingOpen, setIsCookingOpen] = useState(false);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-
-  // Filter recipes logic
-  const filteredRecipes = useMemo(() => {
-    let list = [...recipes];
-
-    // Simpanan Tab
-    if (activeTab === 'bookmarks') {
-      list = list.filter(r => bookmarks.includes(r.id));
-    }
-
-    // Resep Saya Tab
-    if (activeTab === 'myRecipes' && currentUser) {
-      const currentUserName = currentUser.name.toLowerCase();
-      list = list.filter(r => 
-        r.author.toLowerCase() === currentUserName ||
-        r.author === 'Pengguna Resep Kita' ||
-        r.author === 'Koki Resep Kita' ||
-        r.author === 'Saya Sendiri'
-      );
-    }
-
-    // Quick tag
-    if (activeTag) {
-      const tagLower = activeTag.toLowerCase();
-      list = list.filter(r => 
-        r.title.toLowerCase().includes(tagLower) ||
-        r.tags.some(t => t.toLowerCase().includes(tagLower)) ||
-        r.desc.toLowerCase().includes(tagLower)
-      );
-    }
-
-    // Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(r => 
-        r.title.toLowerCase().includes(q) ||
-        r.desc.toLowerCase().includes(q) ||
-        r.author.toLowerCase().includes(q) ||
-        r.tags.some(t => t.toLowerCase().includes(q)) ||
-        (Array.isArray(r.ingredients) && r.ingredients.some(ing => ing.name.toLowerCase().includes(q)))
-      );
-    }
-
-    // Difficulty filter
-    if (difficultyFilter !== 'all') {
-      list = list.filter(r => r.difficulty === difficultyFilter);
-    }
-
-    // Time filter
-    if (timeFilter !== 'all') {
-      const maxTime = parseInt(timeFilter);
-      list = list.filter(r => r.time <= maxTime);
-    }
-
-    return list;
-  }, [recipes, bookmarks, activeTab, currentUser, activeTag, searchQuery, difficultyFilter, timeFilter]);
-
-  const handleOpenDetail = (recipe: Recipe) => {
-    setSelectedRecipe(recipe);
-    setIsDetailOpen(true);
+  // Handlers
+  const handleOpenLogin = (mode: 'login' | 'daftar' = 'login') => {
+    setLoginMode(mode);
+    setIsLoginOpen(true);
   };
 
-  const handleStartCooking = (recipe: Recipe) => {
-    setIsDetailOpen(false);
-    setSelectedRecipe(recipe);
-    setIsCookingOpen(true);
-  };
-
-  const handleOpenCreateClick = () => {
-    if (!currentUser) {
-      showToast('Silakan masuk terlebih dahulu untuk menulis resep.');
-      setIsLoginOpen(true);
-    } else {
-      setRecipeToEdit(null);
-      setIsAddOpen(true);
-    }
-  };
-
-  const handleOpenEditRecipe = (recipe: Recipe) => {
-    setIsDetailOpen(false);
-    setRecipeToEdit(recipe);
+  const handleOpenCreate = () => {
+    setRecipeToEdit(null);
     setIsAddOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleSelectRecipe = (r: Recipe) => {
+    setSelectedRecipe(r);
+    setCurrentView('detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditRecipe = (r: Recipe) => {
+    setRecipeToEdit(r);
+    setIsAddOpen(true);
+  };
+
+  const handleDeleteRecipe = (r: Recipe) => {
+    setRecipeToDelete(r);
+  };
+
+  const confirmDeleteRecipe = async () => {
     if (!recipeToDelete) return;
-    setIsDeleting(true);
     await deleteRecipe(recipeToDelete.id);
-    setIsDeleting(false);
-    setRecipeToDelete(null);
     if (selectedRecipe?.id === recipeToDelete.id) {
-      setIsDetailOpen(false);
+      setCurrentView('kategori');
+      setSelectedRecipe(null);
     }
+    setRecipeToDelete(null);
+    showToast('Resep berhasil dihapus.');
   };
 
-  const handleShowMyRecipes = () => {
-    if (!currentUser) return;
-    setActiveTab('myRecipes');
-    setSearchQuery('');
-    showToast(`Menampilkan kumpulan resep buatan ${currentUser.name}`);
+  const handleSearchSubmit = (q: string) => {
+    setSearchQuery(q);
+    setCurrentView('kategori');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const resetAllFilters = () => {
-    setSearchQuery('');
-    setActiveTag('');
-    setDifficultyFilter('all');
-    setTimeFilter('all');
+  const handleSelectCategory = (catSlug?: string) => {
+    setSelectedCategory(catSlug || null);
+    setCurrentView('kategori');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const myRecipesCount = currentUser 
-    ? recipes.filter(r => 
-        r.author.toLowerCase() === currentUser.name.toLowerCase() || 
-        r.author === 'Pengguna Resep Kita' || 
-        r.author === 'Koki Resep Kita' ||
-        r.author === 'Saya Sendiri'
-      ).length 
-    : 0;
+  // Filtered recipes for "kategori" view
+  const categoryFilteredRecipes = React.useMemo(() => {
+    let list = [...recipes];
+    if (selectedCategory) {
+      list = list.filter((r) => r.category === selectedCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (r: Recipe) =>
+          r.title.toLowerCase().includes(q) ||
+          (r.desc && r.desc.toLowerCase().includes(q)) ||
+          r.tags?.some((t: string) => t.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [recipes, selectedCategory, searchQuery]);
+
+  // Featured Recipe for Hero Card
+  const featuredRecipe = recipes[0] || {
+    id: 'featured-1',
+    title: 'Kopi Susu Gula Aren',
+    desc: 'Hanya 10 menit, rasanya seperti kopi kekinian favoritmu.',
+    time: 10,
+    portionBase: 1,
+    rating: 4.9,
+    difficulty: 'Mudah',
+    author: 'Dapur Rasa',
+    category: 'minuman',
+    tags: ['kopi', 'minuman'],
+    ingredients: [],
+    steps: [],
+    image: '',
+  };
 
   return (
-    <div className="bg-stone-50 text-stone-800 antialiased min-h-screen pb-24 md:pb-12 transition-all">
+    <div className="min-h-screen flex flex-col">
       <Toast />
+
+      {/* Header with Navigation and Profile Action */}
+      <Header
+        currentView={currentView}
+        setCurrentView={(view) => {
+          setCurrentView(view);
+          if (view === 'kategori') setSelectedCategory(null);
+        }}
+        onOpenLogin={() => handleOpenLogin('login')}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onSearchSubmit={handleSearchSubmit}
+      />
+
+      {/* VIEW: HOME */}
+      {currentView === 'home' && (
+        <main>
+          {/* ============ HERO ============ */}
+          <section className="hero">
+            <div className="wrap hero-grid">
+              <div>
+                <span className="eyebrow">✦ Resep teruji di dapur rumahan</span>
+                <h1>
+                  <span>Masak enak setiap hari,</span>{' '}
+                  <span className="grad">mulai dari yang paling gampang.</span>
+                </h1>
+                <p className="lead">
+                  Panduan resep lengkap dengan takaran bahan dan langkah demi langkah.
+                  Pilih kategori, ikuti alurnya, dan sajikan hidangan favorit keluarga hari ini juga.
+                </p>
+
+                <form
+                  className="search-box"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSearchSubmit(searchQuery);
+                  }}
+                  role="search"
+                >
+                  <input
+                    type="search"
+                    placeholder="Cari resep, misal: nasi goreng, kopi…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Cari resep"
+                  />
+                  <button type="submit">Cari</button>
+                </form>
+
+                <div className="hero-actions" style={{ marginTop: '20px' }}>
+                  <a className="btn btn-primary" href="#kategori">
+                    Jelajahi Kategori →
+                  </a>
+                  <a className="btn btn-ghost" href="#tren">
+                    Lihat yang Tren
+                  </a>
+                </div>
+
+                <div className="hero-stats">
+                  <div>
+                    <strong>{recipes.length || 20}</strong>
+                    <span>Resep terpilih</span>
+                  </div>
+                  <div>
+                    <strong>4</strong>
+                    <span>Kategori utama</span>
+                  </div>
+                  <div>
+                    <strong>4.8★</strong>
+                    <span>Rata-rata rating</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hero Card */}
+              <aside
+                className="hero-card"
+                onClick={() => handleSelectRecipe(featuredRecipe)}
+              >
+                <span className="badge-soft">Resep paling dicari hari ini</span>
+                <h3>{featuredRecipe.title}</h3>
+                <p>{featuredRecipe.desc}</p>
+                <div className="meta">
+                  <span>⏱ {featuredRecipe.time} menit</span>
+                  <span>🥤 {featuredRecipe.portionBase || 1} porsi</span>
+                  <span>★ {featuredRecipe.rating || 4.9}</span>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          {/* ============ KATEGORI ============ */}
+          <section className="section" id="kategori">
+            <div className="wrap">
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">Langkah 1 · Pilih kategori</span>
+                  <h2 className="section-title">Mau masak yang seperti apa?</h2>
+                  <p className="section-desc">
+                    Empat kategori utama yang disusun agar kamu cepat menemukan resep sesuai kebutuhan,
+                    dari hidangan berat sampai pendamping minum kopi.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => handleSelectCategory()}
+                >
+                  Lihat semua resep →
+                </button>
+              </div>
+
+              <div className="kategori-grid">
+                {CATEGORIES.map((k) => {
+                  const count = recipes.filter((r: Recipe) => r.category === k.slug).length;
+                  return (
+                    <button
+                      key={k.slug}
+                      className={`kategori-card pola-${k.pola}`}
+                      style={{
+                        background: `linear-gradient(135deg, ${k.warna[0]}, ${k.warna[1]})`,
+                      }}
+                      data-emoji={k.emoji}
+                      onClick={() => handleSelectCategory(k.slug)}
+                    >
+                      <span className="k-label">{k.label}</span>
+                      <div>
+                        <h3>{k.nama}</h3>
+                        <p>{k.deskripsi}</p>
+                        <div className="k-bottom">
+                          <span>{count} resep</span>
+                          <span className="k-arrow">→</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* ============ REKOMENDASI TREN ============ */}
+          <section className="section section-alt" id="tren">
+            <div className="wrap">
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">Langkah 2 · Rekomendasi tren</span>
+                  <h2 className="section-title">Resep yang sedang banyak dicari</h2>
+                  <p className="section-desc">
+                    Diperbarui berdasarkan resep dengan rating tertinggi dan paling sering dibuka minggu ini.
+                  </p>
+                </div>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => handleSelectCategory()}
+                >
+                  Semua resep →
+                </button>
+              </div>
+
+              {recipes.length > 0 ? (
+                <div className="resep-grid">
+                  {recipes.slice(0, 8).map((r: Recipe, i: number) => (
+                    <RecipeCard
+                      key={r.id}
+                      recipe={r}
+                      rank={i + 1}
+                      onSelect={handleSelectRecipe}
+                      onEdit={handleEditRecipe}
+                      onDelete={handleDeleteRecipe}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="icon">🍲</div>
+                  <h3>Belum ada resep yang tersedia</h3>
+                  <p>Mulai tambahkan resep masakan pertamamu sekarang.</p>
+                  <p style={{ marginTop: '16px' }}>
+                    <button className="btn btn-primary" onClick={handleOpenCreate}>
+                      + Tulis Resep Baru
+                    </button>
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ============ TIPS ============ */}
+          <section className="section" id="tips">
+            <div className="wrap">
+              <div className="section-head">
+                <div>
+                  <span className="eyebrow">Langkah 3 · Sebelum mulai</span>
+                  <h2 className="section-title">Tiga tips masak yang selalu berhasil</h2>
+                  <p className="section-desc">
+                    Kebiasaan kecil ini membuat hasil masakanmu jauh lebih konsisten.
+                  </p>
+                </div>
+              </div>
+              <div className="tips-grid">
+                {COOKING_TIPS.map((tip, idx) => (
+                  <article key={idx} className="tip-card">
+                    <strong>
+                      {tip.icon} {tip.judul}
+                    </strong>
+                    <p>{tip.isi}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        </main>
+      )}
+
+      {/* VIEW: KATEGORI / SEMUA RESEP */}
+      {currentView === 'kategori' && (
+        <main>
+          <section className="page-head">
+            <div className="wrap">
+              <ul className="breadcrumb">
+                <li>
+                  <button onClick={() => setCurrentView('home')}>Beranda</button>
+                </li>
+                <li className="sep">›</li>
+                <li>Semua Resep</li>
+                {selectedCategory && (
+                  <>
+                    <li className="sep">›</li>
+                    <li>
+                      {CATEGORIES.find((c) => c.slug === selectedCategory)?.nama}
+                    </li>
+                  </>
+                )}
+              </ul>
+
+              <span className="eyebrow">
+                {selectedCategory
+                  ? CATEGORIES.find((c) => c.slug === selectedCategory)?.label
+                  : 'Semua Resep'}
+              </span>
+              <h1>
+                {selectedCategory
+                  ? `${CATEGORIES.find((c) => c.slug === selectedCategory)?.emoji} ${CATEGORIES.find((c) => c.slug === selectedCategory)?.nama}`
+                  : 'Semua Resep Dapur Rasa'}
+              </h1>
+              <p>
+                {selectedCategory
+                  ? CATEGORIES.find((c) => c.slug === selectedCategory)?.deskripsi
+                  : 'Jelajahi seluruh koleksi resep, atau saring berdasarkan kategori di bawah ini.'}
+              </p>
+
+              {/* Filter Chips */}
+              <div className="filter-bar">
+                <button
+                  className={`filter-chip ${selectedCategory === null ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  🍽 Semua Resep
+                </button>
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c.slug}
+                    className={`filter-chip ${selectedCategory === c.slug ? 'active' : ''}`}
+                    onClick={() => setSelectedCategory(c.slug)}
+                  >
+                    {c.emoji} {c.nama}
+                  </button>
+                ))}
+              </div>
+
+              {searchQuery && (
+                <p className="result-note">
+                  Menampilkan hasil pencarian untuk “{searchQuery}”
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      marginLeft: '8px',
+                      color: 'var(--brand)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                    }}
+                  >
+                    (Hapus filter)
+                  </button>
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="wrap">
+              {categoryFilteredRecipes.length > 0 ? (
+                <div className="resep-grid">
+                  {categoryFilteredRecipes.map((r) => (
+                    <RecipeCard
+                      key={r.id}
+                      recipe={r}
+                      onSelect={handleSelectRecipe}
+                      onEdit={handleEditRecipe}
+                      onDelete={handleDeleteRecipe}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="icon">🍽</div>
+                  <h3>Resep belum ditemukan</h3>
+                  <p>Coba kata kunci lain atau pilih kategori lain di atas.</p>
+                  <p style={{ marginTop: '16px' }}>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setSelectedCategory(null);
+                        setSearchQuery('');
+                      }}
+                    >
+                      Lihat semua resep
+                    </button>
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        </main>
+      )}
+
+      {/* VIEW: PROFIL (SESUAI GAMBAR PENGGUNA) */}
+      {currentView === 'profil' && (
+        <ProfilView
+          onOpenLogin={handleOpenLogin}
+          onOpenCreate={handleOpenCreate}
+          onSelectRecipe={handleSelectRecipe}
+          onEditRecipe={handleEditRecipe}
+          onDeleteRecipe={handleDeleteRecipe}
+          onBrowseCategory={handleSelectCategory}
+        />
+      )}
+
+      {/* VIEW: DETAIL RESEP */}
+      {currentView === 'detail' && selectedRecipe && (
+        <RecipeDetailView
+          recipe={selectedRecipe}
+          onBack={() => setCurrentView('kategori')}
+          onSelectOtherRecipe={handleSelectRecipe}
+          onEditRecipe={handleEditRecipe}
+          onDeleteRecipe={handleDeleteRecipe}
+        />
+      )}
+
+      {/* SITE FOOTER */}
+      <footer className="site-footer">
+        <div className="wrap">
+          <div className="footer-grid">
+            <div>
+              <button
+                className="logo"
+                style={{ color: '#fff', marginBottom: '12px' }}
+                onClick={() => setCurrentView('home')}
+              >
+                <span className="logo-mark">🍳</span>
+                <span className="logo-text">Dapur Rasa</span>
+              </button>
+              <p>
+                Kumpulan resep rumahan yang mudah diikuti, dengan takaran jelas dan langkah-langkah yang ramah untuk pemula.
+              </p>
+            </div>
+            <div className="footer-col">
+              <h4>Kategori</h4>
+              <ul>
+                {CATEGORIES.map((c) => (
+                  <li key={c.slug}>
+                    <button onClick={() => handleSelectCategory(c.slug)}>
+                      {c.nama}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h4>Navigasi</h4>
+              <ul>
+                <li>
+                  <button onClick={() => setCurrentView('home')}>Beranda</button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setCurrentView('home');
+                      setTimeout(() => {
+                        document.querySelector('#tren')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 50);
+                    }}
+                  >
+                    Resep Tren
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setCurrentView('home');
+                      setTimeout(() => {
+                        document.querySelector('#tips')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 50);
+                    }}
+                  >
+                    Tips Masak
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setCurrentView('profil')}>Profil</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <span>© 2026 Dapur Rasa · Resep Kita</span>
+            <span>Masak dengan hati, sajikan dengan senyum.</span>
+          </div>
+        </div>
+      </footer>
 
       {/* Delete Confirmation Modal */}
       {recipeToDelete && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200">
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
-              <Trash2 className="w-6 h-6" />
+        <div className="modal" role="dialog" aria-modal="true">
+          <div
+            className="modal-backdrop"
+            onClick={() => setRecipeToDelete(null)}
+          />
+          <div className="modal-card" style={{ maxWidth: '400px' }}>
+            <div className="modal-head">
+              <span className="modal-emoji">⚠️</span>
+              <div>
+                <h2>Hapus Resep?</h2>
+                <p className="modal-sub">
+                  Resep “{recipeToDelete.title}” akan dihapus secara permanen.
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-black text-stone-900 mb-2">Hapus Resep Masakan?</h3>
-            <p className="text-sm text-stone-500 mb-6 leading-relaxed">
-              Resep <b>"{recipeToDelete.title}"</b> akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
-            </p>
-            <div className="flex justify-end gap-3">
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                marginTop: '20px',
+                justifyContent: 'flex-end',
+              }}
+            >
               <button
+                className="btn btn-ghost"
                 onClick={() => setRecipeToDelete(null)}
-                className="px-5 py-2.5 rounded-2xl border border-stone-200 text-stone-700 font-bold text-sm hover:bg-stone-50 cursor-pointer"
               >
                 Batal
               </button>
               <button
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
+                className="btn btn-danger"
+                onClick={confirmDeleteRecipe}
               >
-                {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
+                Hapus
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Header Navbar */}
-      <Header 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onOpenLogin={() => setIsLoginOpen(true)}
-        onOpenCreate={handleOpenCreateClick}
-        onSelectExploreTab={() => setActiveTab('explore')}
-        onShowMyRecipes={handleShowMyRecipes}
-      />
-
-      {/* Main Content Area (Layout Awal max-w-6xl) */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
-        {/* User Logged-in Banner */}
-        <UserBanner onShowMyRecipes={handleShowMyRecipes} />
-
-        {/* Smart Recommendations Section */}
-        {activeTab === 'explore' && (
-          <Recommendations onSelectRecipe={handleOpenDetail} />
-        )}
-
-        {/* Tab Navigation Utama */}
-        <div className="flex border-b-2 border-stone-200 mb-6 font-semibold text-sm sm:text-base gap-8 flex-wrap">
-          <button 
-            onClick={() => setActiveTab('explore')} 
-            className={`pb-3 border-b-4 flex items-center gap-2.5 transition-all cursor-pointer ${
-              activeTab === 'explore'
-                ? 'border-brand-500 text-brand-600 font-bold'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Utensils className="w-5 h-5" />
-            <span>Semua Resep Masakan</span>
-          </button>
-          
-          <button 
-            onClick={() => setActiveTab('bookmarks')} 
-            className={`pb-3 border-b-4 flex items-center gap-2.5 transition-all cursor-pointer ${
-              activeTab === 'bookmarks'
-                ? 'border-brand-500 text-brand-600 font-bold'
-                : 'border-transparent text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            <Bookmark className="w-5 h-5" />
-            <span>Resep Simpananku ({bookmarks.length})</span>
-          </button>
-
-          {currentUser && (
-            <button 
-              onClick={() => setActiveTab('myRecipes')} 
-              className={`pb-3 border-b-4 flex items-center gap-2.5 transition-all cursor-pointer ${
-                activeTab === 'myRecipes'
-                  ? 'border-brand-500 text-brand-600 font-bold'
-                  : 'border-transparent text-stone-500 hover:text-stone-800'
-              }`}
-            >
-              <span>Resep Saya ({myRecipesCount})</span>
-            </button>
-          )}
-        </div>
-
-        {/* Quick Search Tags & Filter Bar */}
-        {activeTab === 'explore' && (
-          <div className="mb-6 space-y-4">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 text-xs sm:text-sm">
-              <span className="text-stone-400 font-bold text-xs flex-shrink-0 mr-1 flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5 text-brand-500" /> Populer:
-              </span>
-              
-              <button 
-                onClick={() => setActiveTag('')}
-                className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                  activeTag === '' 
-                    ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' 
-                    : 'bg-white border border-stone-200 text-stone-700 hover:border-brand-500'
-                }`}
-              >
-                Semua Resep
-              </button>
-
-              {[
-                { tag: 'dessert', label: '🍰 Dessert & Manis' },
-                { tag: 'ayam', label: '🍗 Aneka Ayam' },
-                { tag: 'sayur', label: '🥗 Sayur & Sup Sehat' },
-                { tag: 'pedas', label: '🌶️ Sambal & Pedas' },
-                { tag: 'hemat', label: '💰 Budget Hemat' },
-              ].map(({ tag, label }) => (
-                <button
-                  key={tag}
-                  onClick={() => setActiveTag(tag)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                    activeTag === tag
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20'
-                      : 'bg-white border border-stone-200 text-stone-700 hover:border-brand-500'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Filter Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm text-stone-600 bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5 font-bold text-stone-800">
-                  <SlidersHorizontal className="w-4 h-4 text-brand-600" />
-                  <span>Urutkan & Saring:</span>
-                </div>
-                <select 
-                  value={difficultyFilter}
-                  onChange={(e) => setDifficultyFilter(e.target.value)}
-                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="all">Semua Kesulitan</option>
-                  <option value="Mudah">Mudah & Praktis</option>
-                  <option value="Sedang">Sedang</option>
-                </select>
-                <select 
-                  value={timeFilter}
-                  onChange={(e) => setTimeFilter(e.target.value)}
-                  className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer"
-                >
-                  <option value="all">Semua Waktu Masak</option>
-                  <option value="20">Kilat (&le; 20 menit)</option>
-                  <option value="40">Santai (&le; 40 menit)</option>
-                </select>
-              </div>
-
-              <div className="font-bold text-brand-700 bg-brand-50 px-3 py-1 rounded-xl">
-                {filteredRecipes.length} Resep Siap Masak
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Recipe Cards Grid */}
-        {filteredRecipes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard 
-                key={recipe.id} 
-                recipe={recipe} 
-                onSelect={handleOpenDetail} 
-                onEdit={handleOpenEditRecipe}
-                onDelete={(r) => setRecipeToDelete(r)}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-20 px-4 bg-white rounded-3xl border border-dashed border-stone-300">
-            <div className="w-20 h-20 bg-stone-100 text-stone-400 rounded-3xl flex items-center justify-center mx-auto mb-4">
-              <SearchX className="w-10 h-10" />
-            </div>
-            <h3 className="text-xl font-bold text-stone-800 mb-2">Resep Belum Ditemukan</h3>
-            <p className="text-sm text-stone-500 max-w-md mx-auto mb-6">
-              Jangan khawatir! Coba ganti kata kunci masakanmu atau klik tombol di bawah untuk menampilkan seluruh daftar resep.
-            </p>
-            <button 
-              onClick={resetAllFilters} 
-              className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl text-sm font-bold transition-all shadow-md cursor-pointer"
-            >
-              Tampilkan Semua Resep
-            </button>
-          </div>
-        )}
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNav 
-        activeTab={activeTab === 'myRecipes' ? 'explore' : activeTab}
-        onSelectTab={(t) => setActiveTab(t)}
-        onOpenCreate={handleOpenCreateClick}
-        onOpenLogin={() => setIsLoginOpen(true)}
-        onShowMyRecipes={handleShowMyRecipes}
-      />
-
-      {/* Modals Persis Desain Awal */}
-      <RecipeDetailModal 
-        recipe={selectedRecipe}
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        onStartCookingMode={handleStartCooking}
-        onEditRecipe={handleOpenEditRecipe}
-        onDeleteRecipe={(r) => setRecipeToDelete(r)}
-      />
-
-      <CookingModeModal 
-        recipe={selectedRecipe}
-        isOpen={isCookingOpen}
-        onClose={() => setIsCookingOpen(false)}
-        onComplete={() => showToast('Selamat! Hidangan lezatmu sudah siap disajikan 🍽️')}
-      />
-
-      <AddRecipeModal 
-        isOpen={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        recipeToEdit={recipeToEdit}
-      />
-
-      <LoginModal 
+      {/* Auth Modal */}
+      <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onSuccessLogin={() => setIsAddOpen(true)}
+        initialMode={loginMode}
+      />
+
+      {/* Add / Edit Recipe Modal */}
+      <AddRecipeModal
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setRecipeToEdit(null);
+        }}
+        recipeToEdit={recipeToEdit}
       />
     </div>
   );

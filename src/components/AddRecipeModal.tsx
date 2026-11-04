@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Upload } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 import { Recipe } from '../types/recipe';
+import { CATEGORIES } from '../data/categories';
 
 interface AddRecipeModalProps {
   isOpen: boolean;
@@ -9,44 +9,53 @@ interface AddRecipeModalProps {
   recipeToEdit?: Recipe | null;
 }
 
-export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isOpen, onClose, recipeToEdit }) => {
+export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({
+  isOpen,
+  onClose,
+  recipeToEdit,
+}) => {
   const { createRecipe, updateRecipe, currentUser, showToast } = useRecipes();
-  const isEditing = Boolean(recipeToEdit);
 
   const [title, setTitle] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
-  const [time, setTime] = useState('20');
   const [desc, setDesc] = useState('');
-  const [ingredientsInput, setIngredientsInput] = useState('');
-  const [stepsInput, setStepsInput] = useState('');
-  const [imageBase64, setImageBase64] = useState('');
-  const [imageFileName, setImageFileName] = useState('');
-  const [tips, setTips] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [category, setCategory] = useState('makanan-berat');
+  const [time, setTime] = useState(30);
+  const [portion, setPortion] = useState(2);
+  const [difficulty, setDifficulty] = useState<'Mudah' | 'Sedang' | 'Sulit'>('Mudah');
+  const [tags, setTags] = useState('praktis, lezat');
+  const [image, setImage] = useState('');
+  const [ingredientsText, setIngredientsText] = useState('');
+  const [stepsText, setStepsText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (recipeToEdit) {
-      setTitle(recipeToEdit.title || '');
-      setTagsInput(recipeToEdit.tags ? recipeToEdit.tags.join(', ') : '');
-      setTime(String(recipeToEdit.time || 20));
+      setTitle(recipeToEdit.title);
       setDesc(recipeToEdit.desc || '');
-      const ings = recipeToEdit.ingredients
-        ? recipeToEdit.ingredients.map(ing => `${ing.qty > 0 ? ing.qty + ' ' : ''}${ing.unit} ${ing.name}`.trim()).join('\n')
-        : '';
-      setIngredientsInput(ings);
-      setStepsInput(recipeToEdit.steps ? recipeToEdit.steps.join('\n') : '');
-      setImageBase64(recipeToEdit.image || '');
-      setTips(recipeToEdit.tips || '');
+      setCategory(recipeToEdit.category || 'makanan-berat');
+      setTime(recipeToEdit.time || 30);
+      setPortion(recipeToEdit.portionBase || recipeToEdit.portion_base || 2);
+      setDifficulty(recipeToEdit.difficulty || 'Mudah');
+      setTags(Array.isArray(recipeToEdit.tags) ? recipeToEdit.tags.join(', ') : '');
+      setImage(recipeToEdit.image || '');
+
+      const lines = (recipeToEdit.ingredients || []).map((ing) => {
+        if (typeof ing === 'string') return ing;
+        return `${ing.qty} ${ing.unit} ${ing.name}`.trim();
+      });
+      setIngredientsText(lines.join('\n'));
+      setStepsText((recipeToEdit.steps || []).join('\n'));
     } else {
       setTitle('');
-      setTagsInput('');
-      setTime('20');
       setDesc('');
-      setIngredientsInput('');
-      setStepsInput('');
-      setImageBase64('');
-      setImageFileName('');
-      setTips('');
+      setCategory('makanan-berat');
+      setTime(30);
+      setPortion(2);
+      setDifficulty('Mudah');
+      setTags('praktis, lezat');
+      setImage('');
+      setIngredientsText('');
+      setStepsText('');
     }
   }, [recipeToEdit, isOpen]);
 
@@ -67,236 +76,258 @@ export const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ isOpen, onClose,
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      showToast('Harap pilih file gambar (JPG, PNG, WebP)', true);
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Ukuran gambar maksimal 2MB', true);
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Ukuran foto maksimal 5 MB', true);
-      return;
-    }
-
-    setImageFileName(file.name);
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageBase64(reader.result as string);
+    reader.onload = () => {
+      setImage(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!title.trim() || !ingredientsInput.trim() || !stepsInput.trim()) {
-      showToast('Lengkapi isian resep yang berbintang (*)', true);
+    if (!title.trim()) {
+      showToast('Judul resep wajib diisi', true);
       return;
     }
 
-    setSubmitting(true);
-
-    const parsedIngredients = ingredientsInput
-      .split(/[\n,]+/)
-      .map(item => {
-        const clean = item.trim();
-        return { name: clean, qty: 1, unit: 'secukupnya' };
-      })
-      .filter(i => i.name.length > 0);
-
-    const parsedSteps = stepsInput
+    const ingArray = ingredientsText
       .split('\n')
-      .map(s => s.replace(/^\d+[\.\)]\s*/, '').trim())
-      .filter(s => s.length > 0);
-
-    const parsedTags = tagsInput
-      ? tagsInput.toLowerCase().split(/[\s,]+/).filter(t => t.length > 1)
-      : ['rumahan'];
-
-    const duration = parseInt(time) || 20;
-
-    if (isEditing && recipeToEdit) {
-      await updateRecipe(recipeToEdit.id, {
-        title: title.trim(),
-        tags: parsedTags,
-        time: duration,
-        difficulty: duration > 30 ? 'Sedang' : 'Mudah',
-        image: imageBase64 || recipeToEdit.image,
-        desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
-        ingredients: parsedIngredients,
-        steps: parsedSteps,
-        tips: tips.trim() || 'Masak dengan hati senang agar rasa makanan semakin lezat!',
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(' ');
+        const num = parseFloat(parts[0]);
+        if (!isNaN(num) && parts.length > 2) {
+          return {
+            qty: num,
+            unit: parts[1],
+            name: parts.slice(2).join(' '),
+          };
+        }
+        return { qty: 1, unit: 'secukupnya', name: line };
       });
-    } else {
-      const newRecipePayload: Omit<Recipe, 'id' | 'rating' | 'reviewsCount'> = {
-        title: title.trim(),
-        tags: parsedTags,
-        time: duration,
-        difficulty: duration > 30 ? 'Sedang' : 'Mudah',
-        author: currentUser ? currentUser.name : 'Koki Resep Kita',
-        image: imageBase64 || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=700&auto=format&fit=crop&q=80',
-        desc: desc.trim() || 'Resep rumahan lezat buatan komunitas Resep Kita.',
-        portionBase: 2,
-        ingredients: parsedIngredients,
-        steps: parsedSteps,
-        tips: tips.trim() || 'Masak dengan hati senang agar rasa makanan semakin lezat!',
-      };
-      await createRecipe(newRecipePayload);
-    }
 
-    setSubmitting(false);
-    onClose();
+    const stepArray = stepsText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const tagArray = tags
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+
+    setIsSubmitting(true);
+
+    try {
+      if (recipeToEdit) {
+        await updateRecipe(recipeToEdit.id, {
+          title: title.trim(),
+          desc: desc.trim(),
+          category,
+          time: Number(time),
+          portionBase: Number(portion),
+          difficulty,
+          tags: tagArray,
+          image: image || recipeToEdit.image,
+          ingredients: ingArray,
+          steps: stepArray,
+        });
+        showToast('Resep berhasil diperbarui! 🎉');
+      } else {
+        await createRecipe({
+          title: title.trim(),
+          desc: desc.trim(),
+          category,
+          time: Number(time),
+          portionBase: Number(portion),
+          difficulty,
+          tags: tagArray,
+          image:
+            image ||
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=60',
+          ingredients: ingArray,
+          steps: stepArray,
+          author: currentUser?.name || 'Saya Sendiri',
+        });
+        showToast('Resep baru berhasil dipublikasikan! 🎉');
+      }
+      onClose();
+    } catch {
+      showToast('Terjadi kesalahan saat menyimpan resep.', true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white w-full max-w-xl rounded-3xl shadow-2xl p-6 sm:p-8 relative my-8 max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button 
-          onClick={onClose} 
-          className="absolute top-5 right-5 text-stone-400 hover:text-stone-600 cursor-pointer"
+    <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-card modal-card-lg">
+        <button
+          className="modal-close"
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup"
         >
-          <X className="w-6 h-6" />
+          ×
         </button>
 
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-brand-100 text-brand-600">
-              <Sparkles className="w-5 h-5" />
-            </span>
-            <h3 className="text-xl font-black text-stone-900">
-              {isEditing ? 'Edit Resep Masakan' : 'Bagikan Resep Masakanmu'}
-            </h3>
+        <div className="modal-head">
+          <span className="modal-emoji">🍳</span>
+          <div>
+            <h2>{recipeToEdit ? 'Edit Resep' : 'Tulis Resep Baru'}</h2>
+            <p className="modal-sub">
+              Bagikan hidangan lezatmu dengan takaran dan langkah memasak yang jelas.
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            Tulisanmu akan menginspirasi ribuan keluarga di rumah.
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Judul Resep *</label>
-            <input 
-              type="text" 
+        <form onSubmit={handleSubmit} style={{ marginTop: '18px' }}>
+          <label className="field">
+            Judul Resep *
+            <input
+              type="text"
+              placeholder="Contoh: Nasi Goreng Spesial"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required 
-              placeholder="Contoh: Sayur Asem Segar Jakarta" 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
+              required
             />
-          </div>
+          </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1.5">Kata Kunci / Tag Pencarian</label>
-              <input 
-                type="text" 
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="Contoh: sayur, asem, pedas, hemat" 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1.5">Durasi Masak (Menit) *</label>
-              <input 
-                type="number" 
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                required 
-                min="5" 
-                placeholder="20" 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Foto Masakan</label>
-            {imageBase64 ? (
-              <div className="relative rounded-2xl overflow-hidden border border-stone-200 h-40 bg-stone-100 group">
-                <img src={imageBase64} alt="Preview" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setImageBase64('')}
-                  className="absolute top-2 right-2 px-3 py-1 rounded-xl bg-rose-600 text-white font-bold text-xs"
-                >
-                  Ganti
-                </button>
-              </div>
-            ) : (
-              <label className="flex items-center gap-3 border border-dashed border-stone-300 rounded-2xl p-4 bg-stone-50 hover:bg-stone-100 cursor-pointer">
-                <Upload className="w-5 h-5 text-stone-400" />
-                <span className="text-xs text-stone-600 font-semibold">Pilih atau unggah foto masakan</span>
-                <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
-              </label>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Cerita Singkat Resep</label>
-            <textarea 
+          <label className="field">
+            Deskripsi Singkat
+            <textarea
+              rows={2}
+              placeholder="Ceritakan sedikit tentang hidangan ini…"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              rows={2} 
-              placeholder="Ceritakan kenapa resep ini enak dan cocok untuk keluarga..." 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
             />
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <label className="field">
+              Kategori
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.emoji} {c.nama}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              Tingkat Kesulitan
+              <select
+                value={difficulty}
+                onChange={(e) =>
+                  setDifficulty(e.target.value as 'Mudah' | 'Sedang' | 'Sulit')
+                }
+              >
+                <option value="Mudah">Mudah</option>
+                <option value="Sedang">Sedang</option>
+                <option value="Sulit">Sulit</option>
+              </select>
+            </label>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Bahan-Bahan (Pisahkan dengan koma atau baris baru) *</label>
-            <textarea 
-              value={ingredientsInput}
-              onChange={(e) => setIngredientsInput(e.target.value)}
-              rows={3} 
-              required 
-              placeholder="2 ikat Bayam segar, 1 tongkol Jagung manis, 3 siung Bawang merah..." 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <label className="field">
+              Waktu Memasak (menit)
+              <input
+                type="number"
+                min={1}
+                value={time}
+                onChange={(e) => setTime(Number(e.target.value))}
+              />
+            </label>
+
+            <label className="field">
+              Porsi (orang)
+              <input
+                type="number"
+                min={1}
+                value={portion}
+                onChange={(e) => setPortion(Number(e.target.value))}
+              />
+            </label>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Urutan Langkah Memasak (Pisahkan tiap langkah dengan baris baru) *</label>
-            <textarea 
-              value={stepsInput}
-              onChange={(e) => setStepsInput(e.target.value)}
-              rows={3} 
-              required 
-              placeholder="1. Rebus air hingga mendidih&#10;2. Masukkan jagung manis hingga empuk&#10;3. Masukkan sayur dan garam..." 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-2.5 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
+          <label className="field">
+            Unggah Foto Masakan
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageFileChange}
+              style={{ padding: '8px' }}
             />
-          </div>
+          </label>
 
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">Tips Memasak dari Koki (Opsional)</label>
-            <input 
-              type="text" 
-              value={tips}
-              onChange={(e) => setTips(e.target.value)}
-              placeholder="Contoh: Gunakan api kecil agar bumbu meresap sempurna" 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white"
+          {image && (
+            <div style={{ marginBottom: '12px', borderRadius: '12px', overflow: 'hidden', height: '140px' }}>
+              <img
+                src={image}
+                alt="Preview"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
+          )}
+
+          <label className="field">
+            Bahan-Bahan (1 bahan per baris, contoh: 2 butir telur)
+            <textarea
+              rows={4}
+              placeholder="2 porsi nasi putih dingin&#10;2 butir telur&#10;3 siung bawang merah, iris tipis"
+              value={ingredientsText}
+              onChange={(e) => setIngredientsText(e.target.value)}
             />
-          </div>
+          </label>
 
-          <div className="pt-3 border-t border-stone-200 flex justify-end gap-3">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-5 py-3 rounded-2xl border border-stone-200 text-stone-600 text-xs sm:text-sm font-bold hover:bg-stone-50 cursor-pointer"
+          <label className="field">
+            Langkah Memasak (1 langkah per baris)
+            <textarea
+              rows={4}
+              placeholder="Tumis bawang merah sampai harum.&#10;Masukkan telur dan orak-arik.&#10;Masukkan nasi lalu bumbui rata."
+              value={stepsText}
+              onChange={(e) => setStepsText(e.target.value)}
+            />
+          </label>
+
+          <label className="field">
+            Tag (pisahkan koma)
+            <input
+              type="text"
+              placeholder="sarapan, praktis, pedas"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+            />
+          </label>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={onClose}
             >
               Batal
             </button>
-            <button 
-              type="submit" 
-              disabled={submitting}
-              className="px-6 py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md shadow-brand-500/25 transition-all cursor-pointer disabled:opacity-50"
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ flex: 2, justifyContent: 'center' }}
+              disabled={isSubmitting}
             >
-              {submitting ? 'Menyimpan...' : (isEditing ? 'Simpan Perubahan' : 'Simpan & Terbitkan')}
+              {isSubmitting ? 'Menyimpan…' : recipeToEdit ? 'Simpan Perubahan' : 'Terbitkan Resep'}
             </button>
           </div>
         </form>

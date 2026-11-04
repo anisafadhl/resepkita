@@ -1,112 +1,149 @@
-import React from 'react';
-import { ChefHat, Search, XCircle, PlusCircle, User, Database } from 'lucide-react';
+import React, { useState } from 'react';
 import { useRecipes } from '../context/RecipeContext';
 
 interface HeaderProps {
+  currentView: 'home' | 'kategori' | 'profil' | 'detail';
+  setCurrentView: (view: 'home' | 'kategori' | 'profil') => void;
+  onOpenLogin: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  onOpenLogin: () => void;
-  onOpenCreate: () => void;
-  onSelectExploreTab: () => void;
-  onShowMyRecipes: () => void;
+  onSearchSubmit: (q: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  currentView,
+  setCurrentView,
+  onOpenLogin,
   searchQuery,
   setSearchQuery,
-  onOpenLogin,
-  onOpenCreate,
-  onSelectExploreTab,
-  onShowMyRecipes,
+  onSearchSubmit,
 }) => {
-  const { currentUser, isOnlineDatabase } = useRecipes();
+  const { currentUser, bookmarks } = useRecipes();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+
+  const handleNavClick = (view: 'home' | 'kategori' | 'profil', hash?: string) => {
+    setCurrentView(view);
+    setMenuOpen(false);
+    if (hash) {
+      setTimeout(() => {
+        const el = document.querySelector(hash);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (localSearch.trim()) {
+      setSearchQuery(localSearch.trim());
+      onSearchSubmit(localSearch.trim());
+      setMenuOpen(false);
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-stone-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
-        
-        {/* Brand Logo */}
-        <button 
-          onClick={onSelectExploreTab} 
-          className="flex items-center gap-3 flex-shrink-0 group text-left cursor-pointer focus:outline-none"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25 group-hover:scale-105 transition-transform">
-            <ChefHat className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-black bg-gradient-to-r from-brand-600 to-amber-600 bg-clip-text text-transparent">
-                Resep Kita
-              </span>
-              {isOnlineDatabase ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                  <Database className="w-2.5 h-2.5" /> Supabase
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500" title="Data tersimpan lokal di browser">
-                  Lokal
-                </span>
-              )}
-            </div>
-            <span className="hidden sm:block text-xs text-stone-500 font-medium">Teman Masak Rumahan Semua Umur</span>
-          </div>
+    <header className="site-header">
+      <div className="wrap nav">
+        {/* Logo */}
+        <button className="logo" onClick={() => handleNavClick('home')}>
+          <span className="logo-mark">🍳</span>
+          <span className="logo-text">Dapur Rasa</span>
         </button>
 
-        {/* Large Clear Search Input (Learnability & Findable) */}
-        <div className="flex-1 max-w-lg relative">
-          <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari masakan: sayur lodeh, ayam kecap, telur..." 
-            className="w-full bg-stone-100 pl-11 pr-10 py-3 rounded-2xl text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all border border-stone-200"
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')} 
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
-              title="Hapus pencarian"
+        {/* Desktop Nav Links */}
+        <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
+          <li>
+            <button
+              className={currentView === 'home' ? 'active' : ''}
+              onClick={() => handleNavClick('home')}
             >
-              <XCircle className="w-4 h-4" />
+              Beranda
             </button>
-          )}
-        </div>
+          </li>
+          <li>
+            <button onClick={() => handleNavClick('home', '#kategori')}>
+              Kategori
+            </button>
+          </li>
+          <li>
+            <button onClick={() => handleNavClick('home', '#tren')}>
+              Resep Tren
+            </button>
+          </li>
+          <li>
+            <button onClick={() => handleNavClick('home', '#tips')}>
+              Tips Masak
+            </button>
+          </li>
+          <li>
+            <button
+              className={currentView === 'kategori' ? 'active' : ''}
+              onClick={() => handleNavClick('kategori')}
+            >
+              Semua Resep
+            </button>
+          </li>
 
-        {/* Action Buttons Desktop */}
-        <div className="hidden md:flex items-center gap-3">
-          <button 
-            onClick={onOpenCreate} 
-            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
+          {/* Search inside mobile menu */}
+          <li className="nav-item-search" style={{ display: menuOpen ? 'block' : 'none' }}>
+            <form onSubmit={handleSearch} className="nav-search" style={{ width: '100%' }}>
+              <input
+                type="search"
+                placeholder="Cari resep…"
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+              />
+              <button type="submit">🔍</button>
+            </form>
+          </li>
+        </ul>
+
+        {/* Right CTA */}
+        <div className="nav-cta">
+          <form onSubmit={handleSearch} className="nav-search">
+            <input
+              type="search"
+              placeholder="Cari resep…"
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+            />
+            <button type="submit" aria-label="Cari">🔍</button>
+          </form>
+
+          {/* Profile / Auth Button */}
+          <button
+            className={`nav-profile ${currentUser ? 'is-login' : ''}`}
+            onClick={() => {
+              if (currentUser) {
+                setCurrentView('profil');
+              } else {
+                onOpenLogin();
+              }
+            }}
+            title={currentUser ? `Profil & Koleksi — ${currentUser.name}` : 'Masuk / Daftar'}
           >
-            <PlusCircle className="w-5 h-5" />
-            <span>Bagikan Resep</span>
+            <span className="nav-avatar">
+              {currentUser ? currentUser.name.trim().charAt(0).toUpperCase() : '👤'}
+            </span>
+            <span className="nav-prof-text">
+              {currentUser ? currentUser.name.trim().split(' ')[0] : 'Masuk'}
+            </span>
+            {currentUser && bookmarks.length > 0 && (
+              <span className="nav-badge">{bookmarks.length}</span>
+            )}
           </button>
 
-          {/* User Profile / Login Button Indicator */}
-          {currentUser ? (
-            <button
-              onClick={onShowMyRecipes}
-              className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 p-1.5 pr-3 rounded-2xl cursor-pointer border border-stone-200 transition-all"
-              title="Lihat resep saya"
-            >
-              <div className="w-8 h-8 rounded-xl bg-brand-500 text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                {currentUser.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="text-left">
-                <span className="block text-xs font-bold text-stone-800 leading-tight max-w-[100px] truncate">{currentUser.name}</span>
-                <span className="block text-[10px] text-stone-500">Koki Terdaftar</span>
-              </div>
-            </button>
-          ) : (
-            <button 
-              onClick={onOpenLogin} 
-              className="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 px-3.5 py-3 rounded-2xl text-xs font-bold border border-stone-200 transition-all cursor-pointer"
-            >
-              <User className="w-4 h-4 text-stone-500" />
-              <span>Masuk</span>
-            </button>
-          )}
+          {/* Mobile hamburger */}
+          <button
+            className="nav-toggle"
+            aria-label="Buka menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            ☰
+          </button>
         </div>
       </div>
     </header>

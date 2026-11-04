@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { X, User, UserPlus, LogIn } from 'lucide-react';
 import { useRecipes } from '../context/RecipeContext';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccessLogin?: () => void;
+  initialMode?: 'login' | 'daftar';
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccessLogin }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({
+  isOpen,
+  onClose,
+  initialMode = 'login',
+}) => {
   const { setCurrentUser, showToast } = useRecipes();
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [name, setName] = useState('');
+  const [tab, setTab] = useState<'login' | 'daftar'>(initialMode);
+  const [nama, setNama] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    setTab(initialMode);
+  }, [initialMode, isOpen]);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -30,152 +38,157 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setError('');
 
-    setCurrentUser({
-      name: name.trim(),
-      email: email.trim() || undefined,
-    });
-
-    if (isRegisterMode) {
-      showToast(`Pendaftaran akun baru berhasil! Selamat datang, ${name.trim()} 🎉`);
-    } else {
-      showToast(`Selamat datang kembali, ${name.trim()}!`);
+    if (tab === 'daftar' && nama.trim().length < 2) {
+      setError('Nama minimal 2 karakter.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setError('Format email belum benar.');
+      return;
+    }
+    if (password.length < 4) {
+      setError('Kata sandi minimal 4 karakter.');
+      return;
     }
 
-    setName('');
+    const userName = tab === 'daftar' ? nama.trim() : email.split('@')[0];
+
+    setCurrentUser({
+      name: userName,
+      email: email.trim(),
+      role: 'user',
+    });
+
+    if (tab === 'daftar') {
+      showToast(`🎉 Akun baru dibuat. Selamat datang, ${userName}!`);
+    } else {
+      showToast(`👋 Selamat datang kembali, ${userName}!`);
+    }
+
+    setNama('');
     setEmail('');
     setPassword('');
     onClose();
-    if (onSuccessLogin) {
-      onSuccessLogin();
-    }
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm overflow-y-auto flex items-center justify-center p-4 animate-in fade-in duration-150"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 sm:p-8 relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button 
-          onClick={onClose} 
-          className="absolute top-5 right-5 text-stone-400 hover:text-stone-600 cursor-pointer"
+    <div className="modal" role="dialog" aria-modal="true">
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-card">
+        <button
+          className="modal-close"
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup"
         >
-          <X className="w-6 h-6" />
+          ×
         </button>
 
-        {/* Tab Pilihan Masuk / Buat Akun Baru */}
-        <div className="flex bg-stone-100 p-1 rounded-2xl mb-6">
+        <div className="modal-head">
+          <span className="modal-emoji">🔖</span>
+          <div>
+            <h2>{tab === 'daftar' ? 'Buat akun baru' : 'Masuk untuk menyimpan resep'}</h2>
+            <p className="modal-sub">
+              {tab === 'daftar'
+                ? 'Gratis, cukup satu kali daftar.'
+                : 'Simpan resep favoritmu di sini.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="modal-tabs">
           <button
             type="button"
-            onClick={() => setIsRegisterMode(false)}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              !isRegisterMode 
-                ? 'bg-white text-stone-900 shadow-sm' 
-                : 'text-stone-500 hover:text-stone-800'
-            }`}
+            className={tab === 'login' ? 'active' : ''}
+            onClick={() => {
+              setTab('login');
+              setError('');
+            }}
           >
-            <LogIn className="w-4 h-4" />
-            <span>Masuk Akun</span>
+            Masuk
           </button>
           <button
             type="button"
-            onClick={() => setIsRegisterMode(true)}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              isRegisterMode 
-                ? 'bg-white text-stone-900 shadow-sm' 
-                : 'text-stone-500 hover:text-stone-800'
-            }`}
+            className={tab === 'daftar' ? 'active' : ''}
+            onClick={() => {
+              setTab('daftar');
+              setError('');
+            }}
           >
-            <UserPlus className="w-4 h-4" />
-            <span>Buat Akun Baru</span>
+            Daftar baru
           </button>
         </div>
 
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <User className="w-8 h-8" />
-          </div>
-          <h3 className="text-xl font-black text-stone-900">
-            {isRegisterMode ? 'Buat Akun Baru' : 'Masuk Akun'}
-          </h3>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            {isRegisterMode 
-              ? 'Daftarkan akunmu untuk menyimpan resep favorit dan membagikan resep masakanmu.'
-              : 'Membaca resep bebas tanpa login. Masuk akun untuk membagikan resep karyamu.'}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">
-              Nama Lengkap / Nama Pengguna *
-            </label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required 
-              placeholder="Contoh: Anisa Fadhl / Budi Santoso" 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-700 mb-1.5">
-              Email {isRegisterMode ? '*' : '(Opsional)'}
-            </label>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required={isRegisterMode}
-              placeholder="nama@email.com" 
-              className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
-            />
-          </div>
-
-          {isRegisterMode && (
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                Kata Sandi *
-              </label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required={isRegisterMode}
-                placeholder="Minimal 6 karakter" 
-                className="w-full text-sm border border-stone-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-brand-500 focus:outline-none bg-stone-50 focus:bg-white transition-all"
+        <form onSubmit={handleSubmit} noValidate>
+          {tab === 'daftar' && (
+            <label className="field">
+              Nama
+              <input
+                type="text"
+                placeholder="Nama kamu"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                required
               />
-            </div>
+            </label>
           )}
 
-          <div className="pt-2">
-            <button 
-              type="submit" 
-              className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 active:scale-95 text-white rounded-2xl font-bold text-sm shadow-md shadow-brand-500/30 transition-all cursor-pointer"
-            >
-              {isRegisterMode ? 'Buat Akun Baru' : 'Masuk'}
-            </button>
-          </div>
+          <label className="field">
+            Email
+            <input
+              type="email"
+              placeholder="nama@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
 
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => setIsRegisterMode(!isRegisterMode)}
-              className="text-xs text-stone-500 hover:text-brand-600 font-semibold cursor-pointer underline"
+          <label className="field">
+            Kata sandi
+            <input
+              type="password"
+              placeholder="Minimal 4 karakter"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+
+          {error && (
+            <p
+              style={{
+                margin: '0 0 10px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                color: '#c0392b',
+                background: '#fdeceb',
+                border: '1px solid #f6cfcb',
+                padding: '8px 11px',
+                borderRadius: '10px',
+              }}
             >
-              {isRegisterMode 
-                ? 'Sudah punya akun? Masuk di sini' 
-                : 'Belum punya akun? Buat akun baru'}
-            </button>
-          </div>
+              {error}
+            </p>
+          )}
+
+          <button className="btn btn-primary btn-block" type="submit">
+            {tab === 'daftar' ? 'Daftar & simpan' : 'Masuk'}
+          </button>
         </form>
+
+        <p
+          style={{
+            margin: '12px 0 0',
+            fontSize: '0.74rem',
+            color: '#a99c8f',
+            textAlign: 'center',
+          }}
+        >
+          Masuk dengan akunmu untuk menyimpan resep dan menulis resep sendiri.
+        </p>
       </div>
     </div>
   );
